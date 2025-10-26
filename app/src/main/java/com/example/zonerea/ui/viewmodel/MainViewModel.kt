@@ -3,6 +3,7 @@ package com.example.zonerea.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zonerea.data.SongRepository
+import com.example.zonerea.model.Album
 import com.example.zonerea.model.Song
 import com.example.zonerea.playback.MusicController
 import com.example.zonerea.playback.Player
@@ -41,6 +42,18 @@ class MainViewModel(
             is FilterType.Album -> filteredSongs.filter { it.album == filter.album }
             else -> filteredSongs
         }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val albums: StateFlow<List<Album>> = _songs.map { songs ->
+        songs.groupBy { it.album }
+            .map { (albumName, songsInAlbum) ->
+                Album(
+                    name = albumName,
+                    artist = songsInAlbum.first().artist,
+                    albumArtUri = songsInAlbum.first().albumArtUri,
+                    songCount = songsInAlbum.size
+                )
+            }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val favorites: StateFlow<List<Song>> = _songs.map { songs -> songs.filter { it.isFavorite } }
@@ -139,6 +152,12 @@ class MainViewModel(
             currentlyPlaying.value?.let { song ->
                 songRepository.setFavorite(song.id, !song.isFavorite)
             }
+        }
+    }
+
+    fun toggleFavoriteSong(song: Song) {
+        viewModelScope.launch {
+            songRepository.setFavorite(song.id, !song.isFavorite)
         }
     }
 

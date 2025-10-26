@@ -72,7 +72,7 @@ fun MiniPlayer(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.MusicNote,
-                                        contentDescription = "Music Note",
+                                        contentDescription = "Nota Musical",
                                         modifier = Modifier.size(32.dp),
                                         tint = MaterialTheme.colorScheme.onSurface
                                     )
@@ -90,7 +90,7 @@ fun MiniPlayer(
                     IconButton(onClick = onPlayPause) {
                         Icon(
                             imageVector = if (it) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (it) "Pause" else "Play",
+                            contentDescription = if (it) "Pausar" else "Reproducir",
                             modifier = Modifier.size(32.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )

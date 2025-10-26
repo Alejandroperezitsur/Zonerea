@@ -43,17 +43,17 @@ fun PlayerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Now Playing", style = MaterialTheme.typography.titleLarge) },
+                title = { Text("Reproduciendo Ahora", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás")
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.toggleFavorite() }) {
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = "Favorite",
+                            contentDescription = "Favorito",
                             tint = if (isFavorite) MaterialTheme.colorScheme.primary else LocalContentColor.current
                         )
                     }
@@ -103,7 +103,7 @@ fun PlayerScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.MusicNote,
-                                    contentDescription = "Music Note",
+                                    contentDescription = "Nota Musical",
                                     modifier = Modifier.size(96.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -150,23 +150,23 @@ fun PlayerScreen(
                         IconButton(onClick = { viewModel.toggleShuffle() }) {
                             Icon(
                                 Icons.Default.Shuffle,
-                                contentDescription = "Shuffle",
+                                contentDescription = "Aleatorio",
                                 tint = if (isShuffling) MaterialTheme.colorScheme.primary else LocalContentColor.current
                             )
                         }
                         IconButton(onClick = { viewModel.previous() }) {
-                            Icon(Icons.Default.SkipPrevious, modifier = Modifier.size(48.dp), contentDescription = "Previous")
+                            Icon(Icons.Default.SkipPrevious, modifier = Modifier.size(48.dp), contentDescription = "Anterior")
                         }
                         IconButton(onClick = { viewModel.togglePlayPause() }, modifier = Modifier.size(72.dp)) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Filled.PauseCircleFilled else Icons.Filled.PlayCircleFilled,
-                                contentDescription = if (isPlaying) "Pause" else "Play",
+                                contentDescription = if (isPlaying) "Pausar" else "Reproducir",
                                 modifier = Modifier.fillMaxSize(),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
                         IconButton(onClick = { viewModel.next() }) {
-                            Icon(Icons.Default.SkipNext, modifier = Modifier.size(48.dp), contentDescription = "Next")
+                            Icon(Icons.Default.SkipNext, modifier = Modifier.size(48.dp), contentDescription = "Siguiente")
                         }
                         IconButton(onClick = { viewModel.toggleRepeat() }) {
                             Icon(
@@ -174,7 +174,7 @@ fun PlayerScreen(
                                     Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
                                     else -> Icons.Filled.Repeat
                                 },
-                                contentDescription = "Repeat",
+                                contentDescription = "Repetir",
                                 tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else LocalContentColor.current
                             )
                         }
