@@ -22,15 +22,17 @@ class SongRepository(private val context: Context, private val songDao: SongDao)
                 MediaStore.Audio.Media.ALBUM,
                 MediaStore.Audio.Media.DURATION,
                 MediaStore.Audio.Media.ALBUM_ID,
-                MediaStore.Audio.Media.DATE_ADDED
+                MediaStore.Audio.Media.DATE_ADDED,
+                MediaStore.Audio.Media.MIME_TYPE
             )
-            val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+            val selection = "(${MediaStore.Audio.Media.IS_MUSIC} != 0) AND (${MediaStore.Audio.Media.MIME_TYPE} = ? OR ${MediaStore.Audio.Media.MIME_TYPE} = ?)"
+            val selectionArgs = arrayOf("audio/mpeg", "audio/mp4") // MP3 and M4A
 
             context.contentResolver.query(
                 collection,
                 projection,
                 selection,
-                null,
+                selectionArgs,
                 "${MediaStore.Audio.Media.TITLE} ASC"
             )?.use { cursor ->
                 val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)

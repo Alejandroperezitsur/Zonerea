@@ -54,7 +54,7 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.media3.ui) // This line is crucial
     implementation(libs.androidx.media3.session)
     implementation(libs.coil.compose)
     testImplementation(libs.junit)

@@ -1,27 +1,38 @@
 package com.example.zonerea.playback
 
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import androidx.media3.ui.DefaultMediaNotificationProvider
 
+private const val NOTIFICATION_CHANNEL_ID = "music_player_channel"
+
+@UnstableApi
 class MusicService : MediaSessionService() {
-    private var mediaSession: MediaSession? = null
+    private lateinit var player: ExoPlayer
+    private lateinit var mediaSession: MediaSession
 
     override fun onCreate() {
         super.onCreate()
-        val player = ExoPlayer.Builder(this).build()
+        player = ExoPlayer.Builder(this).build()
         mediaSession = MediaSession.Builder(this, player).build()
+
+        val notificationProvider = DefaultMediaNotificationProvider.Builder(this)
+            .setChannelId(NOTIFICATION_CHANNEL_ID)
+            .build()
+
+        setMediaNotificationProvider(notificationProvider)
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession {
         return mediaSession
     }
 
     override fun onDestroy() {
-        mediaSession?.run {
+        mediaSession.run {
             player.release()
             release()
-            mediaSession = null
         }
         super.onDestroy()
     }
