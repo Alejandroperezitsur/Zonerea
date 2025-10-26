@@ -14,5 +14,9 @@ data class Song(
     val artist: String,
     val album: String,
     val duration: Long,
-    val albumArtUri: String
+    val albumArtUri: String,
+    val dateAdded: Long,
+    val isFavorite: Boolean = false,
+    val playCount: Int = 0,
+    val lastPlayed: Long = 0
 ) : Parcelable
