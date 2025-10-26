@@ -72,9 +72,8 @@ fun MainScreen(viewModel: MainViewModel) {
                     MiniPlayer(
                         song = it,
                         isPlaying = isPlaying,
-                        progress = { progress },
+                        progress = progress,
                         onPlayPause = { viewModel.togglePlayPause() },
-                        onSeek = { position -> viewModel.seek(position) },
                         onClick = { isPlayerExpanded = true }
                     )
                 }

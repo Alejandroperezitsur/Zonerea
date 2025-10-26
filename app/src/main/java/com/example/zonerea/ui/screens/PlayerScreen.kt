@@ -1,42 +1,31 @@
 package com.example.zonerea.ui.screens
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.PauseCircleFilled
-import androidx.compose.material.icons.filled.PlayCircleFilled
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.RepeatOne
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
 import com.example.zonerea.playback.Player
 import com.example.zonerea.ui.viewmodel.MainViewModel
+import java.util.concurrent.TimeUnit
+
+private fun formatDuration(millis: Long): String {
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(millis)
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(minutes)
+    return String.format("%02d:%02d", minutes, seconds)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,7 +43,7 @@ fun PlayerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Now Playing") },
+                title = { Text("Now Playing", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -65,69 +54,130 @@ fun PlayerScreen(
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             contentDescription = "Favorite",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else Color.Unspecified
+                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else LocalContentColor.current
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         }
     ) { padding ->
-        currentlyPlaying?.let { song ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Image(
-                    painter = rememberAsyncImagePainter(song.albumArtUri),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(300.dp)
-                        .padding(16.dp)
-                )
-                Text(song.title, style = MaterialTheme.typography.headlineMedium)
-                Text(song.artist, style = MaterialTheme.typography.bodyMedium)
-                Slider(
-                    value = progress,
-                    onValueChange = { viewModel.seek(it) },
-                    modifier = Modifier.padding(horizontal = 32.dp)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+        Crossfade(
+            targetState = currentlyPlaying,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            label = "player_content"
+        ) { song ->
+            if (song != null) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceAround
                 ) {
-                    IconButton(onClick = { viewModel.toggleShuffle() }) {
-                        Icon(
-                            Icons.Default.Shuffle,
-                            contentDescription = "Shuffle",
-                            tint = if (isShuffling) MaterialTheme.colorScheme.primary else Color.Unspecified
+                    // Album Art with Placeholder
+                    SubcomposeAsyncImage(
+                        model = song.albumArtUri,
+                        contentDescription = song.title,
+                        modifier = Modifier
+                            .fillMaxWidth(0.75f)
+                            .aspectRatio(1f)
+                            .clip(MaterialTheme.shapes.medium),
+                        contentScale = ContentScale.Crop,
+                        loading = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        },
+                        error = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = "Music Note",
+                                    modifier = Modifier.size(96.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    )
+
+                    // Song Info
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(song.title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 16.dp))
+                        Text(song.artist, style = MaterialTheme.typography.titleMedium, color = LocalContentColor.current.copy(alpha = 0.7f))
+                    }
+
+                    // Progress Slider and Timers
+                    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                        Slider(
+                            value = progress,
+                            onValueChange = { viewModel.seek(it) },
+                            modifier = Modifier.fillMaxWidth()
                         )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = formatDuration((progress * (song.duration ?: 0L)).toLong()),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                text = formatDuration(song.duration ?: 0L),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
-                    IconButton(onClick = { viewModel.previous() }) {
-                        Icon(Icons.Default.SkipPrevious, contentDescription = "Previous")
-                    }
-                    IconButton(onClick = { viewModel.togglePlayPause() }, modifier = Modifier.size(72.dp)) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Filled.PauseCircleFilled else Icons.Filled.PlayCircleFilled,
-                            contentDescription = if (isPlaying) "Pause" else "Play",
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                    IconButton(onClick = { viewModel.next() }) {
-                        Icon(Icons.Default.SkipNext, contentDescription = "Next")
-                    }
-                    IconButton(onClick = { viewModel.toggleRepeat() }) {
-                        Icon(
-                            imageVector = when (repeatMode) {
-                                Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
-                                else -> Icons.Filled.Repeat
-                            },
-                            contentDescription = "Repeat",
-                            tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else Color.Unspecified
-                        )
+
+                    // Player Controls
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { viewModel.toggleShuffle() }) {
+                            Icon(
+                                Icons.Default.Shuffle,
+                                contentDescription = "Shuffle",
+                                tint = if (isShuffling) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                            )
+                        }
+                        IconButton(onClick = { viewModel.previous() }) {
+                            Icon(Icons.Default.SkipPrevious, modifier = Modifier.size(48.dp), contentDescription = "Previous")
+                        }
+                        IconButton(onClick = { viewModel.togglePlayPause() }, modifier = Modifier.size(72.dp)) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Filled.PauseCircleFilled else Icons.Filled.PlayCircleFilled,
+                                contentDescription = if (isPlaying) "Pause" else "Play",
+                                modifier = Modifier.fillMaxSize(),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        IconButton(onClick = { viewModel.next() }) {
+                            Icon(Icons.Default.SkipNext, modifier = Modifier.size(48.dp), contentDescription = "Next")
+                        }
+                        IconButton(onClick = { viewModel.toggleRepeat() }) {
+                            Icon(
+                                imageVector = when (repeatMode) {
+                                    Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
+                                    else -> Icons.Filled.Repeat
+                                },
+                                contentDescription = "Repeat",
+                                tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                            )
+                        }
                     }
                 }
             }
