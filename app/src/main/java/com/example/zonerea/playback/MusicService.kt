@@ -2,9 +2,9 @@ package com.example.zonerea.playback
 
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-import androidx.media3.ui.DefaultMediaNotificationProvider
 
 private const val NOTIFICATION_CHANNEL_ID = "music_player_channel"
 
