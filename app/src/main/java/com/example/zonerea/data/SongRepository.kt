@@ -45,9 +45,9 @@ class SongRepository(private val context: Context, private val songDao: SongDao)
 
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(idColumn)
-                    val title = cursor.getString(titleColumn)
-                    val artist = cursor.getString(artistColumn)
-                    val album = cursor.getString(albumColumn)
+                    val title = cursor.getString(titleColumn) ?: "Unknown Title"
+                    val artist = cursor.getString(artistColumn) ?: "Unknown Artist"
+                    val album = cursor.getString(albumColumn) ?: "Unknown Album"
                     val duration = cursor.getLong(durationColumn)
                     val albumId = cursor.getLong(albumIdColumn)
                     val dateAdded = cursor.getLong(dateAddedColumn)
