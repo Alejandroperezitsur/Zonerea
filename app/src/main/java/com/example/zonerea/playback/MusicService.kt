@@ -2,7 +2,7 @@ package com.example.zonerea.playback
 
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.ui.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 
@@ -18,9 +18,8 @@ class MusicService : MediaSessionService() {
         player = ExoPlayer.Builder(this).build()
         mediaSession = MediaSession.Builder(this, player).build()
 
-        val notificationProvider = DefaultMediaNotificationProvider.Builder(this)
-            .setChannelId(NOTIFICATION_CHANNEL_ID)
-            .build()
+        val notificationProvider = DefaultMediaNotificationProvider(this)
+        notificationProvider.setChannelId(NOTIFICATION_CHANNEL_ID)
 
         setMediaNotificationProvider(notificationProvider)
     }
