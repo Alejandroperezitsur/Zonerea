@@ -2,14 +2,20 @@ package com.example.zonerea.data
 
 import android.content.Context
 import android.provider.MediaStore
+import androidx.core.net.toUri
 import com.example.zonerea.data.local.SongDao
+import com.example.zonerea.model.Playlist
+import com.example.zonerea.model.PlaylistSongCrossRef
+import com.example.zonerea.model.PlaylistWithSongs
 import com.example.zonerea.model.Song
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 
 class SongRepository(private val context: Context, private val songDao: SongDao) {
 
     val songs = songDao.getAllSongs()
+    val playlists = songDao.getPlaylists()
 
     suspend fun scanForSongs() {
         withContext(Dispatchers.IO) {
@@ -82,6 +88,36 @@ class SongRepository(private val context: Context, private val songDao: SongDao)
             song?.let {
                 songDao.updateSong(it.copy(playCount = it.playCount + 1, lastPlayed = System.currentTimeMillis()))
             }
+        }
+    }
+
+    suspend fun createPlaylist(name: String): Long {
+        return withContext(Dispatchers.IO) {
+            songDao.insertPlaylist(Playlist(name = name))
+        }
+    }
+
+    suspend fun addSongToPlaylist(songId: Long, playlistId: Long) {
+        withContext(Dispatchers.IO) {
+            songDao.addToPlaylist(PlaylistSongCrossRef(playlistId, songId))
+        }
+    }
+
+    fun getPlaylistWithSongs(playlistId: Long): Flow<PlaylistWithSongs> {
+        return songDao.getPlaylistWithSongs(playlistId)
+    }
+
+    suspend fun deleteSong(song: Song) {
+        withContext(Dispatchers.IO) {
+            // Delete from Android MediaStore
+            try {
+                context.contentResolver.delete(song.uri.toUri(), null, null)
+            } catch (e: Exception) {
+                // Log error or handle case where file might not exist
+                e.printStackTrace()
+            }
+            // Delete from local database
+            songDao.deleteSong(song)
         }
     }
 }

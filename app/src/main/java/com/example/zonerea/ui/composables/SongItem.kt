@@ -5,10 +5,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -36,7 +38,9 @@ import com.example.zonerea.model.Song
 fun SongItem(
     song: Song,
     onClick: (Song) -> Unit,
-    onToggleFavorite: (Song) -> Unit
+    onToggleFavorite: (Song) -> Unit,
+    onAddToPlaylist: (Song) -> Unit,
+    onDeleteSong: (Song) -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -110,6 +114,26 @@ fun SongItem(
                         },
                         leadingIcon = {
                             Icon(if (song.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, contentDescription = null)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Añadir a playlist") },
+                        onClick = {
+                            onAddToPlaylist(song)
+                            menuExpanded = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.PlaylistAdd, contentDescription = null)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Eliminar") },
+                        onClick = {
+                            onDeleteSong(song)
+                            menuExpanded = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Delete, contentDescription = null)
                         }
                     )
                 }

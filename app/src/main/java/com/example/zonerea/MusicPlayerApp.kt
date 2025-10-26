@@ -18,7 +18,7 @@ class MusicPlayerApp : Application() {
         val database = Room.databaseBuilder(
             applicationContext,
             SongDatabase::class.java, "songs-db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
         songRepository = SongRepository(this, database.songDao())
 
         createNotificationChannel()

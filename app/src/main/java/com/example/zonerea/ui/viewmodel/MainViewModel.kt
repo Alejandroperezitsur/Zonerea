@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zonerea.data.SongRepository
 import com.example.zonerea.model.Album
+import com.example.zonerea.model.Artist
+import com.example.zonerea.model.Playlist
 import com.example.zonerea.model.Song
 import com.example.zonerea.playback.MusicController
 import com.example.zonerea.playback.Player
@@ -22,6 +24,8 @@ class MainViewModel(
 ) : ViewModel() {
 
     private val _songs = songRepository.songs
+
+    val playlists = songRepository.playlists
 
     private val _searchQuery = MutableStateFlow("")
     private val _filterType = MutableStateFlow<FilterType>(FilterType.None)
@@ -52,6 +56,16 @@ class MainViewModel(
                     artist = songsInAlbum.first().artist,
                     albumArtUri = songsInAlbum.first().albumArtUri,
                     songCount = songsInAlbum.size
+                )
+            }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val artists: StateFlow<List<Artist>> = _songs.map { songs ->
+        songs.groupBy { it.artist }
+            .map { (artistName, songsByArtist) ->
+                Artist(
+                    name = artistName,
+                    songCount = songsByArtist.size
                 )
             }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -147,17 +161,27 @@ class MainViewModel(
         musicController.setRepeatMode(repeatMode.value)
     }
 
-    fun toggleFavorite() {
-        viewModelScope.launch {
-            currentlyPlaying.value?.let { song ->
-                songRepository.setFavorite(song.id, !song.isFavorite)
-            }
-        }
-    }
-
     fun toggleFavoriteSong(song: Song) {
         viewModelScope.launch {
             songRepository.setFavorite(song.id, !song.isFavorite)
+        }
+    }
+
+    fun createPlaylist(name: String) {
+        viewModelScope.launch {
+            songRepository.createPlaylist(name)
+        }
+    }
+
+    fun addSongToPlaylist(song: Song, playlist: Playlist) {
+        viewModelScope.launch {
+            songRepository.addSongToPlaylist(song.id, playlist.id)
+        }
+    }
+
+    fun deleteSong(song: Song) {
+        viewModelScope.launch {
+            songRepository.deleteSong(song)
         }
     }
 

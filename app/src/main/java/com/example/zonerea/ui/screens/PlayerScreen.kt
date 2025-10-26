@@ -50,7 +50,7 @@ fun PlayerScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.toggleFavorite() }) {
+                    IconButton(onClick = { currentlyPlaying?.let { viewModel.toggleFavoriteSong(it) } }) {
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             contentDescription = "Favorito",
@@ -172,7 +172,7 @@ fun PlayerScreen(
                             Icon(
                                 imageVector = when (repeatMode) {
                                     Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
-                                    else -> Icons.Filled.Repeat
+                                    else -> Icons.Default.Repeat
                                 },
                                 contentDescription = "Repetir",
                                 tint = if (repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else LocalContentColor.current
