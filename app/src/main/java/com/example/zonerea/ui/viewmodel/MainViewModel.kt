@@ -179,9 +179,21 @@ class MainViewModel(
         }
     }
 
+    fun deletePlaylist(playlist: Playlist) {
+        viewModelScope.launch {
+            songRepository.deletePlaylist(playlist)
+        }
+    }
+
     fun addSongToPlaylist(song: Song, playlist: Playlist) {
         viewModelScope.launch {
             songRepository.addSongToPlaylist(song.id, playlist.id)
+        }
+    }
+
+    fun removeSongFromPlaylist(song: Song, playlist: Playlist) {
+        viewModelScope.launch {
+            songRepository.removeSongFromPlaylist(song.id, playlist.id)
         }
     }
 

@@ -40,7 +40,8 @@ fun SongItem(
     onClick: (Song) -> Unit,
     onToggleFavorite: (Song) -> Unit,
     onAddToPlaylist: (Song) -> Unit,
-    onDeleteSong: (Song) -> Unit
+    onDeleteSong: (Song) -> Unit,
+    onRemoveFromPlaylist: ((Song) -> Unit)? = null
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -126,16 +127,29 @@ fun SongItem(
                             Icon(Icons.Default.PlaylistAdd, contentDescription = null)
                         }
                     )
-                    DropdownMenuItem(
-                        text = { Text("Eliminar") },
-                        onClick = {
-                            onDeleteSong(song)
-                            menuExpanded = false
-                        },
-                        leadingIcon = {
-                            Icon(Icons.Default.Delete, contentDescription = null)
-                        }
-                    )
+                    if (onRemoveFromPlaylist != null) {
+                        DropdownMenuItem(
+                            text = { Text("Quitar de esta playlist") },
+                            onClick = {
+                                onRemoveFromPlaylist(song)
+                                menuExpanded = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Delete, contentDescription = null)
+                            }
+                        )
+                    } else {
+                        DropdownMenuItem(
+                            text = { Text("Eliminar") },
+                            onClick = {
+                                onDeleteSong(song)
+                                menuExpanded = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Delete, contentDescription = null)
+                            }
+                        )
+                    }
                 }
             }
         },

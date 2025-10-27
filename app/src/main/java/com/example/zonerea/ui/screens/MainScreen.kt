@@ -3,6 +3,7 @@ package com.example.zonerea.ui.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,12 +27,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.zonerea.model.Playlist
 import com.example.zonerea.model.Song
 import com.example.zonerea.ui.composables.*
-import com.example.zonerea.ui.viewmodel.MainViewModel
 import com.example.zonerea.ui.viewmodel.FilterType
+import com.example.zonerea.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -54,6 +57,8 @@ fun MainScreen(viewModel: MainViewModel) {
     var isSearchActive by remember { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var currentFilter by remember { mutableStateOf<FilterType>(FilterType.None) }
 
     BackHandler(enabled = isPlayerExpanded) {
@@ -70,6 +75,7 @@ fun MainScreen(viewModel: MainViewModel) {
         SongListScreen(
             viewModel = viewModel,
             title = title,
+            filterType = currentFilter,
             onBack = {
                 viewModel.clearFilter()
                 currentFilter = FilterType.None
@@ -91,6 +97,27 @@ fun MainScreen(viewModel: MainViewModel) {
     )
     val pagerState = rememberPagerState { tabs.size }
     val scope = rememberCoroutineScope()
+
+    if (showCreatePlaylistDialog) {
+        CreatePlaylistDialog(
+            onDismiss = { showCreatePlaylistDialog = false },
+            onCreate = {
+                viewModel.createPlaylist(it)
+                showCreatePlaylistDialog = false
+            }
+        )
+    }
+
+    if (playlistToDelete != null) {
+        ConfirmDeleteDialog(
+            playlist = playlistToDelete,
+            onDismiss = { playlistToDelete = null },
+            onConfirm = {
+                playlistToDelete?.let { viewModel.deletePlaylist(it) }
+                playlistToDelete = null
+            }
+        )
+    }
 
     if (songToAddToPlaylist != null) {
         AddToPlaylistDialog(
@@ -202,34 +229,52 @@ fun MainScreen(viewModel: MainViewModel) {
                                     )
                                 }
                             }
+
                             1 -> LazyVerticalGrid(
                                 columns = GridCells.Fixed(2),
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(8.dp)
                             ) {
                                 items(albums) { album ->
-                                    AlbumItem(album = album, onClick = { 
+                                    AlbumItem(album = album, onClick = {
                                         viewModel.filterByAlbum(album.name)
-                                        currentFilter = FilterType.Album(album.name) 
+                                        currentFilter = FilterType.Album(album.name)
                                     })
                                 }
                             }
+
                             2 -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 items(artists) { artist ->
-                                    ArtistItem(artist = artist, onClick = { 
+                                    ArtistItem(artist = artist, onClick = {
                                         viewModel.filterByArtist(artist.name)
                                         currentFilter = FilterType.Artist(artist.name)
                                     })
                                 }
                             }
-                            3 -> LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                items(playlists) { playlist ->
-                                    PlaylistItem(playlist = playlist, onClick = { 
-                                        viewModel.filterByPlaylist(playlist.id)
-                                        currentFilter = FilterType.Playlist(playlist.id)
-                                    })
+
+                            3 -> Box(modifier = Modifier.fillMaxSize()){
+                                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                    items(playlists) { playlist ->
+                                        PlaylistItem(
+                                            playlist = playlist,
+                                            onClick = {
+                                                viewModel.filterByPlaylist(playlist.id)
+                                                currentFilter = FilterType.Playlist(playlist.id)
+                                            },
+                                            onDelete = { playlistToDelete = it }
+                                        )
+                                    }
+                                }
+                                FloatingActionButton(
+                                    onClick = { showCreatePlaylistDialog = true },
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(16.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Crear playlist")
                                 }
                             }
+
                             4 -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 items(favorites) { song ->
                                     SongItem(
@@ -241,6 +286,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                     )
                                 }
                             }
+
                             5 -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 items(recentlyAdded) { song ->
                                     SongItem(
@@ -252,6 +298,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                     )
                                 }
                             }
+
                             6 -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 items(lastPlayed) { song ->
                                     SongItem(
@@ -263,6 +310,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                     )
                                 }
                             }
+
                             7 -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 items(mostPlayed) { song ->
                                     SongItem(

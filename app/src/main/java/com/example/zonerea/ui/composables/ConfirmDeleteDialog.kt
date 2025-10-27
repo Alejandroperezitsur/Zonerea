@@ -4,18 +4,27 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.example.zonerea.model.Playlist
 import com.example.zonerea.model.Song
 
 @Composable
 fun ConfirmDeleteDialog(
-    song: Song,
+    song: Song? = null,
+    playlist: Playlist? = null,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val title = if (song != null) "Eliminar canción" else "Eliminar playlist"
+    val text = if (song != null) {
+        "¿Estás seguro de que quieres eliminar '${song.title}'?"
+    } else {
+        "¿Estás seguro de que quieres eliminar la playlist '${playlist?.name}'?"
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Confirmar eliminación") },
-        text = { Text("¿Estás seguro de que quieres eliminar permanentemente '${song.title}' del dispositivo?") },
+        title = { Text(title) },
+        text = { Text(text) },
         confirmButton = {
             Button(onClick = onConfirm) {
                 Text("Eliminar")

@@ -97,13 +97,25 @@ class SongRepository(private val context: Context, private val songDao: SongDao)
         }
     }
 
+    suspend fun deletePlaylist(playlist: Playlist) {
+        withContext(Dispatchers.IO) {
+            songDao.deletePlaylist(playlist)
+        }
+    }
+
     suspend fun addSongToPlaylist(songId: Long, playlistId: Long) {
         withContext(Dispatchers.IO) {
             songDao.addToPlaylist(PlaylistSongCrossRef(playlistId, songId))
         }
     }
 
-    fun getPlaylistWithSongs(playlistId: Long): Flow<PlaylistWithSongs> {
+    suspend fun removeSongFromPlaylist(songId: Long, playlistId: Long) {
+        withContext(Dispatchers.IO) {
+            songDao.removeFromPlaylist(PlaylistSongCrossRef(playlistId, songId))
+        }
+    }
+
+    fun getPlaylistWithSongs(playlistId: Long): Flow<PlaylistWithSongs?> {
         return songDao.getPlaylistWithSongs(playlistId)
     }
 

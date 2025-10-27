@@ -36,6 +36,9 @@ interface SongDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylist(playlist: Playlist): Long
 
+    @Delete
+    suspend fun deletePlaylist(playlist: Playlist)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addToPlaylist(playlistSongCrossRef: PlaylistSongCrossRef)
 
@@ -47,5 +50,5 @@ interface SongDao {
 
     @Transaction
     @Query("SELECT * FROM playlists WHERE id = :playlistId")
-    fun getPlaylistWithSongs(playlistId: Long): Flow<PlaylistWithSongs>
+    fun getPlaylistWithSongs(playlistId: Long): Flow<PlaylistWithSongs?>
 }
