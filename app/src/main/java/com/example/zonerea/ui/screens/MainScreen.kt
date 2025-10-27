@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.example.zonerea.model.Song
 import com.example.zonerea.ui.composables.*
 import com.example.zonerea.ui.viewmodel.MainViewModel
+import com.example.zonerea.ui.viewmodel.FilterType
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -53,10 +54,30 @@ fun MainScreen(viewModel: MainViewModel) {
     var isSearchActive by remember { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var currentFilter by remember { mutableStateOf<FilterType>(FilterType.None) }
 
     BackHandler(enabled = isPlayerExpanded) {
         isPlayerExpanded = false
     }
+
+    if (currentFilter !is FilterType.None) {
+        val title = when (val filter = currentFilter) {
+            is FilterType.Album -> filter.album
+            is FilterType.Artist -> filter.artist
+            is FilterType.Playlist -> playlists.find { it.id == filter.playlistId }?.name ?: ""
+            else -> ""
+        }
+        SongListScreen(
+            viewModel = viewModel,
+            title = title,
+            onBack = {
+                viewModel.clearFilter()
+                currentFilter = FilterType.None
+            }
+        )
+        return
+    }
+
 
     val tabs = listOf(
         "Canciones" to Icons.Default.MusicNote,
@@ -187,17 +208,26 @@ fun MainScreen(viewModel: MainViewModel) {
                                 contentPadding = PaddingValues(8.dp)
                             ) {
                                 items(albums) { album ->
-                                    AlbumItem(album = album, onClick = { /* TODO */ })
+                                    AlbumItem(album = album, onClick = { 
+                                        viewModel.filterByAlbum(album.name)
+                                        currentFilter = FilterType.Album(album.name) 
+                                    })
                                 }
                             }
                             2 -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 items(artists) { artist ->
-                                    ArtistItem(artist = artist, onClick = { /* TODO */ })
+                                    ArtistItem(artist = artist, onClick = { 
+                                        viewModel.filterByArtist(artist.name)
+                                        currentFilter = FilterType.Artist(artist.name)
+                                    })
                                 }
                             }
                             3 -> LazyColumn(modifier = Modifier.fillMaxSize()) {
                                 items(playlists) { playlist ->
-                                    PlaylistItem(playlist = playlist, onClick = { /* TODO */ })
+                                    PlaylistItem(playlist = playlist, onClick = { 
+                                        viewModel.filterByPlaylist(playlist.id)
+                                        currentFilter = FilterType.Playlist(playlist.id)
+                                    })
                                 }
                             }
                             4 -> LazyColumn(modifier = Modifier.fillMaxSize()) {

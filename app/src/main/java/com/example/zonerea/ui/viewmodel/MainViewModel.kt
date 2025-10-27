@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -23,7 +24,7 @@ class MainViewModel(
     private val musicController: MusicController
 ) : ViewModel() {
 
-    private val _songs = songRepository.songs
+    private val _allSongs = songRepository.songs
 
     val playlists = songRepository.playlists
 
@@ -32,29 +33,26 @@ class MainViewModel(
 
     private val _filterType = MutableStateFlow<FilterType>(FilterType.None)
 
-    val songs: StateFlow<List<Song>> = combine(
-        _songs,
-        _searchQuery,
-        _filterType
-    ) { songs, query, filter ->
-        val filteredSongs = if (query.isNotBlank()) {
+    val songs: StateFlow<List<Song>> = _filterType.flatMapLatest { filter ->
+        when (filter) {
+            is FilterType.Album -> _allSongs.map { songs -> songs.filter { it.album == filter.album } }
+            is FilterType.Artist -> _allSongs.map { songs -> songs.filter { it.artist == filter.artist } }
+            is FilterType.Playlist -> songRepository.getPlaylistWithSongs(filter.playlistId).map { it?.songs ?: emptyList() }
+            else -> _allSongs
+        }
+    }.combine(_searchQuery) { songs, query ->
+        if (query.isNotBlank()) {
             songs.filter {
                 it.title.contains(query, ignoreCase = true) ||
-                it.artist.contains(query, ignoreCase = true) ||
-                it.album.contains(query, ignoreCase = true)
+                        it.artist.contains(query, ignoreCase = true) ||
+                        it.album.contains(query, ignoreCase = true)
             }
         } else {
             songs
         }
-
-        when (filter) {
-            is FilterType.Artist -> filteredSongs.filter { it.artist == filter.artist }
-            is FilterType.Album -> filteredSongs.filter { it.album == filter.album }
-            else -> filteredSongs
-        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val albums: StateFlow<List<Album>> = _songs.map { songs ->
+    val albums: StateFlow<List<Album>> = _allSongs.map { songs ->
         songs.groupBy { it.album }
             .map { (albumName, songsInAlbum) ->
                 Album(
@@ -66,7 +64,7 @@ class MainViewModel(
             }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val artists: StateFlow<List<Artist>> = _songs.map { songs ->
+    val artists: StateFlow<List<Artist>> = _allSongs.map { songs ->
         songs.groupBy { it.artist }
             .map { (artistName, songsByArtist) ->
                 Artist(
@@ -76,16 +74,16 @@ class MainViewModel(
             }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val favorites: StateFlow<List<Song>> = _songs.map { songs -> songs.filter { it.isFavorite } }
+    val favorites: StateFlow<List<Song>> = _allSongs.map { songs -> songs.filter { it.isFavorite } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val recentlyAdded: StateFlow<List<Song>> = _songs.map { songs -> songs.sortedByDescending { it.dateAdded } }
+    val recentlyAdded: StateFlow<List<Song>> = _allSongs.map { songs -> songs.sortedByDescending { it.dateAdded } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val lastPlayed: StateFlow<List<Song>> = _songs.map { songs -> songs.sortedByDescending { it.lastPlayed } }
+    val lastPlayed: StateFlow<List<Song>> = _allSongs.map { songs -> songs.sortedByDescending { it.lastPlayed } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val mostPlayed: StateFlow<List<Song>> = _songs.map { songs -> songs.sortedByDescending { it.playCount } }
+    val mostPlayed: StateFlow<List<Song>> = _allSongs.map { songs -> songs.sortedByDescending { it.playCount } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val currentlyPlaying: StateFlow<Song?> = musicController.currentlyPlaying
@@ -117,6 +115,14 @@ class MainViewModel(
 
     fun filterByAlbum(album: String) {
         _filterType.value = FilterType.Album(album)
+    }
+
+    fun filterByPlaylist(playlistId: Long) {
+        _filterType.value = FilterType.Playlist(playlistId)
+    }
+
+    fun clearFilter() {
+        _filterType.value = FilterType.None
     }
 
     fun playSong(song: Song) {
@@ -195,4 +201,5 @@ sealed class FilterType {
     object None : FilterType()
     data class Artist(val artist: String) : FilterType()
     data class Album(val album: String) : FilterType()
+    data class Playlist(val playlistId: Long) : FilterType()
 }
