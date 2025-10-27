@@ -1,5 +1,6 @@
 package com.example.zonerea.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,10 @@ fun MainScreen(viewModel: MainViewModel) {
     var isSearchActive by remember { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
+
+    BackHandler(enabled = isPlayerExpanded) {
+        isPlayerExpanded = false
+    }
 
     val tabs = listOf(
         "Canciones" to Icons.Default.MusicNote,

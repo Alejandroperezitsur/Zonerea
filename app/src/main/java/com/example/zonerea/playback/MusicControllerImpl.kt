@@ -62,7 +62,7 @@ class MusicControllerImpl(private val context: Context) : MusicController {
                                 _progress.value = if (duration > 0) position.toFloat() / duration else 0f
                             }
                         }
-                        delay(1000)
+                        delay(200)
                     }
                 }
             },
