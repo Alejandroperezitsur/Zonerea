@@ -2,6 +2,8 @@ package com.example.zonerea.ui.screens
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -10,16 +12,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.example.zonerea.playback.Player
 import com.example.zonerea.ui.viewmodel.MainViewModel
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 
 private fun formatDuration(millis: Long): String {
     val minutes = TimeUnit.MILLISECONDS.toMinutes(millis)
@@ -70,8 +77,39 @@ fun PlayerScreen(
             label = "player_content"
         ) { song ->
             if (song != null) {
+                var verticalDragOffset by remember { mutableFloatStateOf(0f) }
+                var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
+
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures(
+                                onDragEnd = {
+                                    if (verticalDragOffset > 200) { // Swipe down threshold
+                                        onClose()
+                                    }
+                                    verticalDragOffset = 0f
+                                },
+                                onVerticalDrag = { _, dragAmount ->
+                                    verticalDragOffset += dragAmount
+                                }
+                            )
+                        }
+                        .pointerInput(Unit) {
+                            detectHorizontalDragGestures(
+                                onDragEnd = {
+                                    when {
+                                        horizontalDragOffset < -200 -> viewModel.next() // Swipe left
+                                        horizontalDragOffset > 200 -> viewModel.previous() // Swipe right
+                                    }
+                                    horizontalDragOffset = 0f
+                                },
+                                onHorizontalDrag = { _, dragAmount ->
+                                    horizontalDragOffset += dragAmount
+                                }
+                            )
+                        },
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceAround
                 ) {

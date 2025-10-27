@@ -5,6 +5,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -15,20 +16,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.Album
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.QueueMusic
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -39,13 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.zonerea.model.Song
-import com.example.zonerea.ui.composables.AlbumItem
-import com.example.zonerea.ui.composables.AddToPlaylistDialog
-import com.example.zonerea.ui.composables.ArtistItem
-import com.example.zonerea.ui.composables.ConfirmDeleteDialog
-import com.example.zonerea.ui.composables.MiniPlayer
-import com.example.zonerea.ui.composables.PlaylistItem
-import com.example.zonerea.ui.composables.SongItem
+import com.example.zonerea.ui.composables.*
 import com.example.zonerea.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 
@@ -63,8 +46,10 @@ fun MainScreen(viewModel: MainViewModel) {
     val currentlyPlaying by viewModel.currentlyPlaying.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
     val progress by viewModel.progress.collectAsState()
-    var isPlayerExpanded by remember { mutableStateOf(false) }
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
+    var isPlayerExpanded by remember { mutableStateOf(false) }
+    var isSearchActive by remember { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
 
@@ -115,7 +100,37 @@ fun MainScreen(viewModel: MainViewModel) {
     } else {
         Scaffold(
             topBar = {
-                TopAppBar(title = { Text("Zonerea") })
+                TopAppBar(
+                    title = {
+                        if (isSearchActive) {
+                            TextField(
+                                value = searchQuery,
+                                onValueChange = { viewModel.onSearchQueryChange(it) },
+                                placeholder = { Text("Buscar en tu música") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                trailingIcon = {
+                                    IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Limpiar búsqueda")
+                                    }
+                                }
+                            )
+                        } else {
+                            Text("Zonerea")
+                        }
+                    },
+                    actions = {
+                        if (isSearchActive) {
+                            IconButton(onClick = { isSearchActive = false }) {
+                                Icon(Icons.Default.Close, contentDescription = "Cerrar búsqueda")
+                            }
+                        } else {
+                            IconButton(onClick = { isSearchActive = true }) {
+                                Icon(Icons.Default.Search, contentDescription = "Buscar")
+                            }
+                        }
+                    }
+                )
             },
             bottomBar = {
                 currentlyPlaying?.let {

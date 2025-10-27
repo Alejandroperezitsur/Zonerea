@@ -28,6 +28,8 @@ class MainViewModel(
     val playlists = songRepository.playlists
 
     private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
     private val _filterType = MutableStateFlow<FilterType>(FilterType.None)
 
     val songs: StateFlow<List<Song>> = combine(
@@ -36,7 +38,11 @@ class MainViewModel(
         _filterType
     ) { songs, query, filter ->
         val filteredSongs = if (query.isNotBlank()) {
-            songs.filter { it.title.contains(query, ignoreCase = true) }
+            songs.filter {
+                it.title.contains(query, ignoreCase = true) ||
+                it.artist.contains(query, ignoreCase = true) ||
+                it.album.contains(query, ignoreCase = true)
+            }
         } else {
             songs
         }
@@ -82,14 +88,12 @@ class MainViewModel(
     val mostPlayed: StateFlow<List<Song>> = _songs.map { songs -> songs.sortedByDescending { it.playCount } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _currentlyPlaying = MutableStateFlow<Song?>(null)
-    val currentlyPlaying: StateFlow<Song?> = _currentlyPlaying.asStateFlow()
+    val currentlyPlaying: StateFlow<Song?> = musicController.currentlyPlaying
+    val isPlaying: StateFlow<Boolean> = musicController.isPlaying
+    val progress: StateFlow<Float> = musicController.progress
 
     val isFavorite: StateFlow<Boolean> = currentlyPlaying.map { it?.isFavorite ?: false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    private val _isPlaying = MutableStateFlow(false)
-    val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
     private val _isShuffling = MutableStateFlow(false)
     val isShuffling: StateFlow<Boolean> = _isShuffling.asStateFlow()
@@ -97,16 +101,14 @@ class MainViewModel(
     private val _repeatMode = MutableStateFlow(Player.REPEAT_MODE_OFF)
     val repeatMode: StateFlow<Int> = _repeatMode.asStateFlow()
 
-    val progress: StateFlow<Float> = musicController.progress
-
     fun scanForSongs() {
         viewModelScope.launch {
             songRepository.scanForSongs()
         }
     }
 
-    fun search(query: String) {
-        _searchQuery.value = query
+    fun onSearchQueryChange(newQuery: String) {
+        _searchQuery.value = newQuery
     }
 
     fun filterByArtist(artist: String) {
@@ -119,8 +121,6 @@ class MainViewModel(
 
     fun playSong(song: Song) {
         musicController.play(song, songs.value)
-        _currentlyPlaying.value = song
-        _isPlaying.value = true
         viewModelScope.launch {
             songRepository.updatePlayStatistics(song.id)
         }
@@ -130,9 +130,8 @@ class MainViewModel(
         if (isPlaying.value) {
             musicController.pause()
         } else {
-            musicController.resume()
+            currentlyPlaying.value?.let { musicController.resume() }
         }
-        _isPlaying.value = !isPlaying.value
     }
 
     fun seek(position: Float) {
@@ -148,17 +147,18 @@ class MainViewModel(
     }
 
     fun toggleShuffle() {
-        _isShuffling.value = !isShuffling.value
-        musicController.setShuffleMode(isShuffling.value)
+        _isShuffling.value = !_isShuffling.value
+        musicController.setShuffleMode(_isShuffling.value)
     }
 
     fun toggleRepeat() {
-        _repeatMode.value = when (repeatMode.value) {
+        val nextRepeatMode = when (repeatMode.value) {
             Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ONE
             Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_ALL
             else -> Player.REPEAT_MODE_OFF
         }
-        musicController.setRepeatMode(repeatMode.value)
+        _repeatMode.value = nextRepeatMode
+        musicController.setRepeatMode(nextRepeatMode)
     }
 
     fun toggleFavoriteSong(song: Song) {

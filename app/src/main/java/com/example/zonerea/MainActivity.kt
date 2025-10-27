@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import com.example.zonerea.playback.MusicController
+import com.example.zonerea.playback.MusicControllerImpl
 import com.example.zonerea.ui.screens.MainScreen
 import com.example.zonerea.ui.theme.ZonereaTheme
 import com.example.zonerea.ui.viewmodel.MainViewModel
@@ -55,7 +56,7 @@ class MainActivity : ComponentActivity() {
 
     private fun setupApplication() {
         // 1. Initialize Controller
-        musicController = MusicController(this)
+        musicController = MusicControllerImpl(this)
 
         // 2. Initialize ViewModel
         val viewModelFactory = ViewModelFactory(
