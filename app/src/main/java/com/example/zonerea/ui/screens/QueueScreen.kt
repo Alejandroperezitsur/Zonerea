@@ -2,6 +2,7 @@ package com.example.zonerea.ui.screens
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,6 +12,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -29,6 +32,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -53,14 +57,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.zonerea.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
+import com.example.zonerea.ui.composables.MiniPlayer
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun QueueScreen(
     viewModel: MainViewModel,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onOpenPlayer: () -> Unit
 ) {
     val queue by viewModel.queue.collectAsState()
+    val currentlyPlaying by viewModel.currentlyPlaying.collectAsState()
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    val progress by viewModel.progress.collectAsState()
     var draggingIndex by remember { mutableStateOf<Int?>(null) }
     var dragAccumulated by remember { mutableStateOf(0f) }
     val itemHeightPx = with(LocalDensity.current) { 72.dp.toPx() }
@@ -76,12 +85,33 @@ fun QueueScreen(
                 },
                 windowInsets = TopAppBarDefaults.windowInsets
             )
+        },
+        bottomBar = {
+            AnimatedVisibility(
+                visible = currentlyPlaying != null,
+                enter = slideInVertically(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)) { it } +
+                        fadeIn(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)),
+                exit = slideOutVertically(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)) { it } +
+                        fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing))
+            ) {
+                currentlyPlaying?.let {
+                    MiniPlayer(
+                        song = it,
+                        isPlaying = isPlaying,
+                        progress = progress,
+                        onPlayPause = { viewModel.togglePlayPause() },
+                        onClick = onOpenPlayer
+                    )
+                }
+            }
         }
     ) { padding ->
         val listState = rememberLazyListState()
         val scope = rememberCoroutineScope()
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
             contentPadding = PaddingValues(8.dp),
             state = listState
         ) {

@@ -30,8 +30,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -43,8 +49,13 @@ import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.zonerea.model.Playlist
 import com.example.zonerea.model.Song
 import com.example.zonerea.ui.composables.*
@@ -52,10 +63,13 @@ import com.example.zonerea.ui.composables.AlphabetIndex
 import com.example.zonerea.ui.composables.SleepTimerDialog
 import com.example.zonerea.ui.viewmodel.FilterType
 import com.example.zonerea.ui.viewmodel.MainViewModel
+import com.example.zonerea.ui.theme.appThemeDisplayName
+import com.example.zonerea.ui.theme.colorSchemeFor
 import com.example.zonerea.ui.theme.fadeInSpec
 import com.example.zonerea.ui.theme.fadeOutSpec
 import com.example.zonerea.ui.theme.slideSpec
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -74,11 +88,13 @@ fun MainScreen(viewModel: MainViewModel) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isSleepTimerActive by viewModel.isSleepTimerActive.collectAsState()
     val sleepTimerMinutes by viewModel.sleepTimerMinutes.collectAsState()
+    val currentTheme by viewModel.selectedTheme.collectAsState()
 
     var isPlayerExpanded by rememberSaveable { mutableStateOf(false) }
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var isQueueOpen by rememberSaveable { mutableStateOf(false) }
     var showSleepTimerDialog by rememberSaveable { mutableStateOf(false) }
+    var showThemePickerDialog by rememberSaveable { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
     var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
@@ -107,7 +123,8 @@ fun MainScreen(viewModel: MainViewModel) {
             onBack = {
                 viewModel.clearFilter()
                 currentFilter = FilterType.None
-            }
+            },
+            onOpenPlayer = { isPlayerExpanded = true }
         )
         return
     }
@@ -147,6 +164,14 @@ fun MainScreen(viewModel: MainViewModel) {
             onSet = { m -> viewModel.startSleepTimer(m) },
             onCancel = { viewModel.cancelSleepTimer() },
             onDismiss = { showSleepTimerDialog = false }
+        )
+    }
+
+    if (showThemePickerDialog) {
+        ThemePickerDialog(
+            current = currentTheme,
+            onSelect = { theme -> viewModel.setTheme(theme) },
+            onDismiss = { showThemePickerDialog = false }
         )
     }
 
@@ -211,7 +236,8 @@ fun MainScreen(viewModel: MainViewModel) {
     ) {
         QueueScreen(
             viewModel = viewModel,
-            onClose = { isQueueOpen = false }
+            onClose = { isQueueOpen = false },
+            onOpenPlayer = { isPlayerExpanded = true }
         )
     }
     if (!isPlayerExpanded) {
@@ -220,10 +246,31 @@ fun MainScreen(viewModel: MainViewModel) {
                 TopAppBar(
                     title = {
                         if (isSearchActive) {
+                            var localQuery by rememberSaveable { mutableStateOf(searchQuery) }
+                            LaunchedEffect(localQuery) {
+                                delay(200)
+                                if (localQuery != searchQuery) {
+                                    viewModel.onSearchQueryChange(localQuery)
+                                }
+                            }
+
+                            fun highlight(text: String, q: String): AnnotatedString {
+                                if (q.isBlank()) return AnnotatedString(text)
+                                val idx = text.indexOf(q, ignoreCase = true)
+                                return if (idx >= 0) {
+                                    buildAnnotatedString {
+                                        append(text.substring(0, idx))
+                                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                                            append(text.substring(idx, idx + q.length))
+                                        }
+                                        append(text.substring(idx + q.length))
+                                    }
+                                } else AnnotatedString(text)
+                            }
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 DockedSearchBar(
-                                    query = searchQuery,
-                                    onQueryChange = { viewModel.onSearchQueryChange(it) },
+                                    query = localQuery,
+                                    onQueryChange = { localQuery = it },
                                     onSearch = {
                                         // Al confirmar búsqueda, cerramos el modo búsqueda y mantenemos el filtro por query
                                         isSearchActive = false
@@ -233,13 +280,16 @@ fun MainScreen(viewModel: MainViewModel) {
                                     placeholder = { Text("Buscar canciones, artistas, álbumes, playlists") },
                                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                                     trailingIcon = {
-                                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                                        IconButton(onClick = {
+                                            localQuery = ""
+                                            viewModel.onSearchQueryChange("")
+                                        }) {
                                             Icon(Icons.Default.Clear, contentDescription = "Limpiar búsqueda")
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    val q = searchQuery.lowercase()
+                                    val q = localQuery.lowercase()
                                     val artistSuggestions = artists.filter { it.name.lowercase().contains(q) }.take(5)
                                     val albumSuggestions = albums.filter { it.name.lowercase().contains(q) }.take(5)
                                     val playlistSuggestions = playlists.filter { it.name.lowercase().contains(q) }.take(5)
@@ -251,7 +301,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                             items(artistSuggestions.size) { idx ->
                                                 val artist = artistSuggestions[idx]
                                                 ListItem(
-                                                    headlineContent = { Text(artist.name) },
+                                                    headlineContent = { Text(highlight(artist.name, q)) },
                                                     leadingContent = { Icon(Icons.Default.Person, contentDescription = null) },
                                                     overlineContent = { Text("Filtrar por artista") },
                                                     modifier = Modifier
@@ -268,7 +318,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                             items(albumSuggestions.size) { idx ->
                                                 val album = albumSuggestions[idx]
                                                 ListItem(
-                                                    headlineContent = { Text(album.name) },
+                                                    headlineContent = { Text(highlight(album.name, q)) },
                                                     leadingContent = { Icon(Icons.Default.Album, contentDescription = null) },
                                                     overlineContent = { Text("Filtrar por álbum") },
                                                     modifier = Modifier
@@ -285,7 +335,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                             items(playlistSuggestions.size) { idx ->
                                                 val playlist = playlistSuggestions[idx]
                                                 ListItem(
-                                                    headlineContent = { Text(playlist.name) },
+                                                    headlineContent = { Text(highlight(playlist.name, q)) },
                                                     leadingContent = { Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = null) },
                                                     overlineContent = { Text("Filtrar por playlist") },
                                                     modifier = Modifier
@@ -302,9 +352,9 @@ fun MainScreen(viewModel: MainViewModel) {
                                             items(songSuggestions.size) { idx ->
                                                 val song = songSuggestions[idx]
                                                 ListItem(
-                                                    headlineContent = { Text(song.title) },
+                                                    headlineContent = { Text(highlight(song.title, q)) },
                                                     leadingContent = { Icon(Icons.Default.MusicNote, contentDescription = null) },
-                                                    overlineContent = { Text(song.artist) },
+                                                    overlineContent = { Text(highlight(song.artist, q)) },
                                                     modifier = Modifier
                                                         .fillMaxWidth()
                                                         .clickable {
@@ -384,6 +434,34 @@ fun MainScreen(viewModel: MainViewModel) {
                                     contentDescription = "Temporizador",
                                     tint = if (isSleepTimerActive) MaterialTheme.colorScheme.primary else LocalContentColor.current
                                 )
+                            }
+                            val themeLabel = currentTheme?.let { appThemeDisplayName(it) } ?: "Sistema"
+                            val themeScheme = currentTheme?.let { colorSchemeFor(it) }
+                            val themeSwatchColor = themeScheme?.primary
+                            val swatchBorderColor = themeScheme?.onPrimary
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (themeSwatchColor != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(12.dp)
+                                            .background(themeSwatchColor)
+                                            .border(BorderStroke(1.dp, swatchBorderColor ?: MaterialTheme.colorScheme.outline))
+                                    )
+                                    Spacer(modifier = Modifier.padding(start = 6.dp))
+                                }
+                                Text(
+                                    text = themeLabel,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .padding(end = 4.dp)
+                                        .clickable { showThemePickerDialog = true }
+                                )
+                            }
+                            IconButton(onClick = { showThemePickerDialog = true }) {
+                                Icon(Icons.Default.Palette, contentDescription = "Cambiar tema")
                             }
                             IconButton(onClick = { isQueueOpen = true }) {
                                 Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Abrir cola")

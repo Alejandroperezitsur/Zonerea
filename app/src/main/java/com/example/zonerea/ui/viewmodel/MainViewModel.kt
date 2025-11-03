@@ -9,6 +9,8 @@ import com.example.zonerea.model.Playlist
 import com.example.zonerea.model.Song
 import com.example.zonerea.playback.MusicController
 import com.example.zonerea.playback.Player
+import com.example.zonerea.ui.theme.AppTheme
+import com.example.zonerea.ui.theme.ThemePreferences
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,7 +27,8 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(
     private val songRepository: SongRepository,
-    private val musicController: MusicController
+    private val musicController: MusicController,
+    private val themePreferences: ThemePreferences
 ) : ViewModel() {
 
     private val _allSongs = songRepository.songs
@@ -42,6 +45,16 @@ class MainViewModel(
     val searchQuery = _searchQuery.asStateFlow()
 
     private val _filterType = MutableStateFlow<FilterType>(FilterType.None)
+
+    // Tema seleccionado y actualización
+    val selectedTheme: StateFlow<AppTheme?> = themePreferences.themeFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun setTheme(theme: AppTheme?) {
+        viewModelScope.launch {
+            themePreferences.setTheme(theme)
+        }
+    }
 
     val songs: StateFlow<List<Song>> = _filterType.flatMapLatest { filter ->
         when (filter) {

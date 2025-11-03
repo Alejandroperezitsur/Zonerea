@@ -8,10 +8,12 @@ import android.os.Build
 import androidx.room.Room
 import com.example.zonerea.data.SongRepository
 import com.example.zonerea.data.local.SongDatabase
+import com.example.zonerea.ui.theme.ThemePreferences
 
 class MusicPlayerApp : Application() {
 
     lateinit var songRepository: SongRepository
+    lateinit var themePreferences: ThemePreferences
 
     override fun onCreate() {
         super.onCreate()
@@ -20,6 +22,7 @@ class MusicPlayerApp : Application() {
             SongDatabase::class.java, "songs-db"
         ).fallbackToDestructiveMigration().build()
         songRepository = SongRepository(this, database.songDao())
+        themePreferences = ThemePreferences(this)
 
         createNotificationChannel()
     }

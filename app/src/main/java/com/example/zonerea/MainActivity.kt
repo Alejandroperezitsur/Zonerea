@@ -10,6 +10,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.animation.Crossfade
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -67,9 +70,11 @@ class MainActivity : ComponentActivity() {
         musicController = MusicControllerImpl(this)
 
         // 2. Initialize ViewModel
+        val app = (application as MusicPlayerApp)
         val viewModelFactory = ViewModelFactory(
-            (application as MusicPlayerApp).songRepository,
-            musicController!!
+            app.songRepository,
+            musicController!!,
+            app.themePreferences
         )
         viewModel = ViewModelProvider(this, viewModelFactory)[MainViewModel::class.java]
 
@@ -78,12 +83,15 @@ class MainActivity : ComponentActivity() {
 
         // 4. Set UI content
         setContent {
-            ZonereaTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    MainScreen(viewModel)
+            val selectedTheme by viewModel.selectedTheme.collectAsState()
+            Crossfade(targetState = selectedTheme) { st ->
+                ZonereaTheme(selectedTheme = st) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        MainScreen(viewModel)
+                    }
                 }
             }
         }

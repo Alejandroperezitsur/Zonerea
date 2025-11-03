@@ -32,6 +32,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -57,6 +61,7 @@ import com.example.zonerea.ui.composables.SongInfoDialog
 import com.example.zonerea.ui.viewmodel.FilterType
 import com.example.zonerea.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
+import com.example.zonerea.ui.composables.MiniPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,10 +70,14 @@ fun SongListScreen(
     title: String,
     filterType: FilterType,
     onBack: () -> Unit,
+    onOpenPlayer: () -> Unit,
 ) {
     val songs by viewModel.songs.collectAsState()
     val allSongs by viewModel.allSongs.collectAsState()
     val playlists by viewModel.playlists.collectAsState(initial = emptyList())
+    val currentlyPlaying by viewModel.currentlyPlaying.collectAsState()
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    val progress by viewModel.progress.collectAsState()
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var songInfo by remember { mutableStateOf<Song?>(null) }
     var showAddSongsDialog by remember { mutableStateOf(false) }
@@ -121,6 +130,25 @@ fun SongListScreen(
                 },
                 windowInsets = TopAppBarDefaults.windowInsets
             )
+        },
+        bottomBar = {
+            AnimatedVisibility(
+                visible = currentlyPlaying != null,
+                enter = slideInVertically(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)) { it } +
+                        fadeIn(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)),
+                exit = slideOutVertically(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)) { it } +
+                        fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing))
+            ) {
+                currentlyPlaying?.let {
+                    MiniPlayer(
+                        song = it,
+                        isPlaying = isPlaying,
+                        progress = progress,
+                        onPlayPause = { viewModel.togglePlayPause() },
+                        onClick = onOpenPlayer
+                    )
+                }
+            }
         },
         floatingActionButton = {
             AnimatedVisibility(
