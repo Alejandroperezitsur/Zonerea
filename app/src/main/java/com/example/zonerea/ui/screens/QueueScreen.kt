@@ -2,6 +2,7 @@ package com.example.zonerea.ui.screens
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +32,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -72,21 +76,65 @@ fun QueueScreen(
         ) {
             itemsIndexed(queue, key = { _, song -> song.id }) { index, song ->
                 AnimatedContent(targetState = index, label = "queue_item_transition") { _ ->
+                var menuExpanded by remember { mutableStateOf(false) }
+                
                 ListItem(
                     headlineContent = { Text(song.title) },
                     overlineContent = { Text(song.artist, style = MaterialTheme.typography.bodySmall) },
                     trailingContent = {
-                        IconButton(onClick = { viewModel.playAt(index) }) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = "Reproducir")
-                        }
-                        IconButton(onClick = { if (index > 0) viewModel.moveQueueItem(index, index - 1) }) {
-                            Icon(Icons.Default.ArrowUpward, contentDescription = "Subir")
-                        }
-                        IconButton(onClick = { if (index < queue.size - 1) viewModel.moveQueueItem(index, index + 1) }) {
-                            Icon(Icons.Default.ArrowDownward, contentDescription = "Bajar")
-                        }
-                        IconButton(onClick = { viewModel.removeQueueItem(index) }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Eliminar")
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Más opciones")
+                            }
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Reproducir") },
+                                    onClick = {
+                                        viewModel.playAt(index)
+                                        menuExpanded = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.PlayArrow, contentDescription = null)
+                                    }
+                                )
+                                if (index > 0) {
+                                    DropdownMenuItem(
+                                        text = { Text("Mover arriba") },
+                                        onClick = {
+                                            viewModel.moveQueueItem(index, index - 1)
+                                            menuExpanded = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.ArrowUpward, contentDescription = null)
+                                        }
+                                    )
+                                }
+                                if (index < queue.size - 1) {
+                                    DropdownMenuItem(
+                                        text = { Text("Mover abajo") },
+                                        onClick = {
+                                            viewModel.moveQueueItem(index, index + 1)
+                                            menuExpanded = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.ArrowDownward, contentDescription = null)
+                                        }
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text("Eliminar de cola") },
+                                    onClick = {
+                                        viewModel.removeQueueItem(index)
+                                        menuExpanded = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Delete, contentDescription = null)
+                                    }
+                                )
+                            }
                         }
                         // Drag handle
                         IconButton(
@@ -129,7 +177,7 @@ fun QueueScreen(
                                 }
                             }
                         ) {
-                            Icon(Icons.Default.DragHandle, contentDescription = "Arrastrar para reordenar")
+                            Icon(Icons.Default.DragHandle, contentDescription = "Arrastrar")
                         }
                     }
                 )

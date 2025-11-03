@@ -43,11 +43,28 @@ fun SleepTimerDialog(
                 )
                 Spacer(modifier = Modifier.padding(top = 8.dp))
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    listOf(15, 30, 45, 60).forEach { preset ->
+                    Column(modifier = Modifier.weight(1f)) {
                         Button(
-                            onClick = { onSet(preset); onDismiss() },
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) { Text("${preset} min") }
+                            onClick = { onSet(15); onDismiss() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("15 min") }
+                        Spacer(modifier = Modifier.padding(top = 8.dp))
+                        Button(
+                            onClick = { onSet(45); onDismiss() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("45 min") }
+                    }
+                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Button(
+                            onClick = { onSet(30); onDismiss() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("30 min") }
+                        Spacer(modifier = Modifier.padding(top = 8.dp))
+                        Button(
+                            onClick = { onSet(60); onDismiss() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("1 hora") }
                     }
                 }
                 Spacer(modifier = Modifier.padding(top = 8.dp))

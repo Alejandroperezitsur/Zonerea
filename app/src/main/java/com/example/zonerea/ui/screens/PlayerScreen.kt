@@ -2,6 +2,7 @@ package com.example.zonerea.ui.screens
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
@@ -32,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -59,14 +63,25 @@ private fun formatDuration(millis: Long): String {
 @Composable
 fun PlayerScreen(
     viewModel: MainViewModel,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onOpenArtist: (String) -> Unit
 ) {
     val currentlyPlaying by viewModel.currentlyPlaying.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
-    val progress by viewModel.progress.collectAsState()
+    val rawProgress by viewModel.progress.collectAsState()
     val isShuffling by viewModel.isShuffling.collectAsState()
     val repeatMode by viewModel.repeatMode.collectAsState()
     val isFavorite by viewModel.isFavorite.collectAsState()
+    
+    // Animación suave para el progreso
+    val animatedProgress by animateFloatAsState(
+        targetValue = rawProgress,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "progress_animation"
+    )
 
     Scaffold(
         topBar = {
@@ -214,13 +229,18 @@ fun PlayerScreen(
                     // Song Info
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(song.title, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 16.dp))
-                        Text(song.artist, style = MaterialTheme.typography.titleMedium, color = LocalContentColor.current.copy(alpha = 0.7f))
+                        Text(
+                            song.artist,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = LocalContentColor.current.copy(alpha = 0.7f),
+                            modifier = Modifier.clickable { onOpenArtist(song.artist) }
+                        )
                     }
 
                     // Progress Slider and Timers
                     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                         Slider(
-                            value = progress,
+                            value = animatedProgress,
                             onValueChange = { viewModel.seek(it) },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -229,7 +249,7 @@ fun PlayerScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = formatDuration((progress * (song.duration ?: 0L)).toLong()),
+                                text = formatDuration((animatedProgress * (song.duration ?: 0L)).toLong()),
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(

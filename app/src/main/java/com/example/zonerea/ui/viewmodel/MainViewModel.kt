@@ -96,8 +96,11 @@ class MainViewModel(
     val queue: StateFlow<List<Song>> = musicController.queue
     val audioSessionId: StateFlow<Int?> = musicController.audioSessionId
 
-    val isFavorite: StateFlow<Boolean> = currentlyPlaying.map { it?.isFavorite ?: false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    val isFavorite: StateFlow<Boolean> = combine(currentlyPlaying, _allSongs) { playing, allSongs ->
+        playing?.let { currentSong ->
+            allSongs.find { it.id == currentSong.id }?.isFavorite ?: false
+        } ?: false
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private val _isShuffling = MutableStateFlow(false)
     val isShuffling: StateFlow<Boolean> = _isShuffling.asStateFlow()

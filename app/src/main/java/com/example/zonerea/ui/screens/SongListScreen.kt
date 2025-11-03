@@ -1,7 +1,7 @@
 package com.example.zonerea.ui.screens
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
+// import androidx.compose.animation.core.animateFloatAsState
+// import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -11,15 +11,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
+// import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxState
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
+// import androidx.compose.material3.SwipeToDismissBox
+// import androidx.compose.material3.SwipeToDismissBoxState
+// import androidx.compose.material3.SwipeToDismissBoxValue
+// import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -34,7 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+// import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.zonerea.model.Song
 import com.example.zonerea.ui.composables.AddToPlaylistDialog
@@ -126,53 +126,14 @@ fun SongListScreen(
                 } else {
                     null
                 }
-                val dismissState: SwipeToDismissBoxState = rememberSwipeToDismissBoxState(
-                    confirmValueChange = { value ->
-                        when (value) {
-                            SwipeToDismissBoxValue.EndToStart, SwipeToDismissBoxValue.StartToEnd -> {
-                                if (onRemove != null) {
-                                    onRemove(song)
-                                } else {
-                                    viewModel.deleteSong(song)
-                                }
-                                true
-                            }
-                            else -> false
-                        }
-                    }
-                )
-                SwipeToDismissBox(
-                    state = dismissState,
-                    backgroundContent = {
-                        val targetColor = if (onRemove != null) Color(0xFF7C4DFF) else Color(0xFFD32F2F)
-                        val alpha by animateFloatAsState(
-                            targetValue = if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) 1f else 0f,
-                            label = "dismiss_alpha"
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(targetColor.copy(alpha = alpha)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = if (onRemove != null) "Quitar de playlist" else "Eliminar",
-                                tint = Color.White
-                            )
-                        }
-                    },
-                    content = {
-                        SongItem(
-                            song = song,
-                            onClick = { viewModel.playSong(song) },
-                            onToggleFavorite = { viewModel.toggleFavoriteSong(song) },
-                            onAddToPlaylist = { songToAddToPlaylist = it },
-                            onDeleteSong = { viewModel.deleteSong(song) },
-                            onShowInfo = { songInfo = it },
-                            onRemoveFromPlaylist = onRemove
-                        )
-                    }
+                SongItem(
+                    song = song,
+                    onClick = { viewModel.playSong(song) },
+                    onToggleFavorite = { viewModel.toggleFavoriteSong(song) },
+                    onAddToPlaylist = { songToAddToPlaylist = it },
+                    onDeleteSong = { viewModel.deleteSong(song) },
+                    onShowInfo = { songInfo = it },
+                    onRemoveFromPlaylist = onRemove
                 )
             }
             }

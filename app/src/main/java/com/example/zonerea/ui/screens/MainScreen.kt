@@ -191,7 +191,12 @@ fun MainScreen(viewModel: MainViewModel) {
     ) {
         PlayerScreen(
             viewModel = viewModel,
-            onClose = { isPlayerExpanded = false }
+            onClose = { isPlayerExpanded = false },
+            onOpenArtist = { artist ->
+                viewModel.filterByArtist(artist)
+                currentFilter = FilterType.Artist(artist)
+                isPlayerExpanded = false
+            }
         )
     }
     AnimatedVisibility(
@@ -214,16 +219,20 @@ fun MainScreen(viewModel: MainViewModel) {
                                 DockedSearchBar(
                                     query = searchQuery,
                                     onQueryChange = { viewModel.onSearchQueryChange(it) },
-                                    onSearch = { /* No-op, usamos sugerencias */ },
-                                    active = true,
-                                    onActiveChange = { /* mantiene activo mientras isSearchActive */ },
+                                    onSearch = {
+                                        // Al confirmar búsqueda, cerramos el modo búsqueda y mantenemos el filtro por query
+                                        isSearchActive = false
+                                    },
+                                    active = isSearchActive,
+                                    onActiveChange = { isSearchActive = it },
                                     placeholder = { Text("Buscar canciones, artistas, álbumes, playlists") },
                                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                                     trailingIcon = {
                                         IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
                                             Icon(Icons.Default.Clear, contentDescription = "Limpiar búsqueda")
                                         }
-                                    }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
                                     val q = searchQuery.lowercase()
                                     val artistSuggestions = artists.filter { it.name.lowercase().contains(q) }.take(5)
