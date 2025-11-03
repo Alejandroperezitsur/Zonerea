@@ -1,6 +1,12 @@
 package com.example.zonerea.ui.composables
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
@@ -17,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import com.example.zonerea.model.Playlist
 
 @Composable
@@ -26,6 +33,13 @@ fun PlaylistItem(
     onDelete: (Playlist) -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = tween(durationMillis = 120, easing = FastOutSlowInEasing),
+        label = "playlist_item_press"
+    )
     ListItem(
         headlineContent = { Text(playlist.name) },
         leadingContent = {
@@ -46,6 +60,12 @@ fun PlaylistItem(
                 )
             }
         },
-        modifier = Modifier.clickable { onClick(playlist) }
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .animateContentSize()
+            .clickable(interactionSource = interactionSource, indication = null) { onClick(playlist) }
     )
 }

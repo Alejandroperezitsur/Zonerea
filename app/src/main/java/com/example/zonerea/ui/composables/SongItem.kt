@@ -1,7 +1,13 @@
 package com.example.zonerea.ui.composables
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -28,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,6 +53,13 @@ fun SongItem(
     onRemoveFromPlaylist: ((Song) -> Unit)? = null
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = tween(durationMillis = 120, easing = FastOutSlowInEasing),
+        label = "song_item_press"
+    )
 
     ListItem(
         headlineContent = {
@@ -166,7 +180,13 @@ fun SongItem(
                 }
             }
         },
-        modifier = Modifier.clickable { onClick(song) },
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .animateContentSize()
+            .clickable(interactionSource = interactionSource, indication = null) { onClick(song) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
     )
 }

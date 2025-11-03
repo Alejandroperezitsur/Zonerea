@@ -52,6 +52,9 @@ import com.example.zonerea.ui.composables.AlphabetIndex
 import com.example.zonerea.ui.composables.SleepTimerDialog
 import com.example.zonerea.ui.viewmodel.FilterType
 import com.example.zonerea.ui.viewmodel.MainViewModel
+import com.example.zonerea.ui.theme.fadeInSpec
+import com.example.zonerea.ui.theme.fadeOutSpec
+import com.example.zonerea.ui.theme.slideSpec
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -167,7 +170,9 @@ fun MainScreen(viewModel: MainViewModel) {
                 songToAddToPlaylist = null
             },
             onCreateNewPlaylist = { playlistName ->
-                viewModel.createPlaylist(playlistName)
+                songToAddToPlaylist?.let { song ->
+                    viewModel.createPlaylistAndAddSong(song, playlistName)
+                }
                 songToAddToPlaylist = null
             }
         )
@@ -186,8 +191,8 @@ fun MainScreen(viewModel: MainViewModel) {
 
     AnimatedVisibility(
         visible = isPlayerExpanded,
-        enter = slideInVertically { it } + fadeIn(),
-        exit = slideOutVertically { it } + fadeOut()
+        enter = slideInVertically(animationSpec = slideSpec()) { it } + fadeIn(animationSpec = fadeInSpec()),
+        exit = slideOutVertically(animationSpec = slideSpec()) { it } + fadeOut(animationSpec = fadeOutSpec())
     ) {
         PlayerScreen(
             viewModel = viewModel,
@@ -201,8 +206,8 @@ fun MainScreen(viewModel: MainViewModel) {
     }
     AnimatedVisibility(
         visible = isQueueOpen,
-        enter = slideInVertically { it } + fadeIn(),
-        exit = slideOutVertically { it } + fadeOut()
+        enter = slideInVertically(animationSpec = slideSpec()) { it } + fadeIn(animationSpec = fadeInSpec()),
+        exit = slideOutVertically(animationSpec = slideSpec()) { it } + fadeOut(animationSpec = fadeOutSpec())
     ) {
         QueueScreen(
             viewModel = viewModel,
@@ -425,7 +430,11 @@ fun MainScreen(viewModel: MainViewModel) {
                     state = pagerState,
                     modifier = Modifier.weight(1f)
                 ) { page ->
-                    Crossfade(targetState = page, label = "page_crossfade") { targetPage ->
+                    Crossfade(
+                        targetState = page,
+                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 280, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                        label = "page_crossfade"
+                    ) { targetPage ->
                         when (targetPage) {
                             0 -> {
                                 val listState = rememberLazyListState()

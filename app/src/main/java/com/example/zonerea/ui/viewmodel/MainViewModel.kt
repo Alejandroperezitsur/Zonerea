@@ -29,6 +29,12 @@ class MainViewModel(
 ) : ViewModel() {
 
     private val _allSongs = songRepository.songs
+    // Expose all songs for UI selections (e.g., add to playlist from playlist view)
+    val allSongs: StateFlow<List<Song>> = _allSongs.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        emptyList()
+    )
 
     val playlists = songRepository.playlists
 
@@ -148,6 +154,21 @@ class MainViewModel(
         }
     }
 
+    // Shuffle and play the entire current list (playlist, artist, album, or all)
+    fun shufflePlayAll() {
+        val current = songs.value
+        if (current.isNotEmpty()) {
+            _isShuffling.value = true
+            musicController.setShuffleMode(true)
+            val shuffled = current.shuffled()
+            val first = shuffled.first()
+            musicController.play(first, shuffled)
+            viewModelScope.launch {
+                songRepository.updatePlayStatistics(first.id)
+            }
+        }
+    }
+
     fun togglePlayPause() {
         if (isPlaying.value) {
             musicController.pause()
@@ -214,6 +235,14 @@ class MainViewModel(
     fun createPlaylist(name: String) {
         viewModelScope.launch {
             songRepository.createPlaylist(name)
+        }
+    }
+
+    // Create a playlist and add the provided song to it
+    fun createPlaylistAndAddSong(song: Song, name: String) {
+        viewModelScope.launch {
+            val newId = songRepository.createPlaylist(name)
+            songRepository.addSongToPlaylist(song.id, newId)
         }
     }
 

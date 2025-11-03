@@ -11,20 +11,32 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Delete
 // import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-// import androidx.compose.material3.SwipeToDismissBox
-// import androidx.compose.material3.SwipeToDismissBoxState
-// import androidx.compose.material3.SwipeToDismissBoxValue
-// import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.zonerea.model.Song
 import com.example.zonerea.ui.composables.AddToPlaylistDialog
+import com.example.zonerea.ui.composables.AddSongsToPlaylistDialog
 import com.example.zonerea.ui.composables.AlphabetIndex
 import com.example.zonerea.ui.composables.SongItem
 import com.example.zonerea.ui.composables.SongInfoDialog
@@ -54,9 +67,11 @@ fun SongListScreen(
     onBack: () -> Unit,
 ) {
     val songs by viewModel.songs.collectAsState()
+    val allSongs by viewModel.allSongs.collectAsState()
     val playlists by viewModel.playlists.collectAsState(initial = emptyList())
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var songInfo by remember { mutableStateOf<Song?>(null) }
+    var showAddSongsDialog by remember { mutableStateOf(false) }
 
     if (songToAddToPlaylist != null) {
         AddToPlaylistDialog(
@@ -67,7 +82,9 @@ fun SongListScreen(
                 songToAddToPlaylist = null
             },
             onCreateNewPlaylist = { playlistName ->
-                viewModel.createPlaylist(playlistName)
+                songToAddToPlaylist?.let { song ->
+                    viewModel.createPlaylistAndAddSong(song, playlistName)
+                }
                 songToAddToPlaylist = null
             }
         )
@@ -92,13 +109,27 @@ fun SongListScreen(
                         )
                     }
                 },
+                actions = {
+                    if (filterType is FilterType.Playlist && songs.isNotEmpty()) {
+                        IconButton(onClick = {
+                            // Reproducir toda la playlist en modo aleatorio
+                            viewModel.shufflePlayAll()
+                        }) {
+                            Icon(Icons.Default.Shuffle, contentDescription = "Reproducir toda la playlist en aleatorio")
+                        }
+                    }
+                },
                 windowInsets = TopAppBarDefaults.windowInsets
             )
         },
         floatingActionButton = {
-            if (filterType is FilterType.Playlist) {
+            AnimatedVisibility(
+                visible = filterType is FilterType.Playlist,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
                 FloatingActionButton(
-                    onClick = { /* TODO: Implement add songs to playlist */ },
+                    onClick = { showAddSongsDialog = true },
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Agregar canciones")
                 }
@@ -112,11 +143,25 @@ fun SongListScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Diálogo para añadir múltiples canciones a la playlist desde el FAB
+            if (showAddSongsDialog && filterType is FilterType.Playlist) {
+                playlists.find { it.id == filterType.playlistId }?.let { pl ->
+                    AddSongsToPlaylistDialog(
+                        availableSongs = allSongs,
+                        alreadyInPlaylistIds = songs.map { it.id }.toSet(),
+                        onDismiss = { showAddSongsDialog = false },
+                        onConfirm = { selected ->
+                            selected.forEach { s -> viewModel.addSongToPlaylist(s, pl) }
+                            showAddSongsDialog = false
+                        }
+                    )
+                }
+            }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 state = listState
             ) {
-            items(songs) { song ->
+            items(songs, key = { it.id }) { song ->
                 val onRemove: ((Song) -> Unit)? = if (filterType is FilterType.Playlist) {
                     {
                         playlists.find { it.id == filterType.playlistId }?.let { playlist ->
@@ -126,14 +171,46 @@ fun SongListScreen(
                 } else {
                     null
                 }
-                SongItem(
-                    song = song,
-                    onClick = { viewModel.playSong(song) },
-                    onToggleFavorite = { viewModel.toggleFavoriteSong(song) },
-                    onAddToPlaylist = { songToAddToPlaylist = it },
-                    onDeleteSong = { viewModel.deleteSong(song) },
-                    onShowInfo = { songInfo = it },
-                    onRemoveFromPlaylist = onRemove
+                val dismissState = rememberSwipeToDismissBoxState(
+                    confirmValueChange = { value ->
+                        if (value == SwipeToDismissBoxValue.EndToStart || value == SwipeToDismissBoxValue.StartToEnd) {
+                            if (onRemove != null) {
+                                onRemove.invoke(song)
+                            } else {
+                                viewModel.deleteSong(song)
+                            }
+                        }
+                        true
+                    }
+                )
+                SwipeToDismissBox(
+                    state = dismissState,
+                    backgroundContent = {
+                        // Fondo con color de error y un ícono de eliminar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(color = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+                    },
+                    content = {
+                        SongItem(
+                            song = song,
+                            onClick = { viewModel.playSong(song) },
+                            onToggleFavorite = { viewModel.toggleFavoriteSong(song) },
+                            onAddToPlaylist = { songToAddToPlaylist = it },
+                            onDeleteSong = { viewModel.deleteSong(song) },
+                            onShowInfo = { songInfo = it },
+                            onRemoveFromPlaylist = onRemove
+                        )
+                    }
                 )
             }
             }
@@ -160,6 +237,23 @@ fun SongListScreen(
                     .align(Alignment.CenterEnd)
                     .padding(end = 4.dp)
             )
+            if (showAddSongsDialog && filterType is FilterType.Playlist) {
+                val currentPlaylist = playlists.find { it.id == filterType.playlistId }
+                if (currentPlaylist != null) {
+                    val alreadyIds = songs.map { it.id }.toSet()
+                    AddSongsToPlaylistDialog(
+                        availableSongs = allSongs,
+                        alreadyInPlaylistIds = alreadyIds,
+                        onDismiss = { showAddSongsDialog = false },
+                        onConfirm = { selected ->
+                            selected.forEach { song -> viewModel.addSongToPlaylist(song, currentPlaylist) }
+                            showAddSongsDialog = false
+                        }
+                    )
+                } else {
+                    showAddSongsDialog = false
+                }
+            }
         }
     }
 }

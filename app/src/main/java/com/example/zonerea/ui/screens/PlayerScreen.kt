@@ -108,6 +108,7 @@ fun PlayerScreen(
     ) { padding ->
         Crossfade(
             targetState = currentlyPlaying,
+            animationSpec = tween(durationMillis = 280, easing = androidx.compose.animation.core.FastOutSlowInEasing),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
