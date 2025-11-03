@@ -10,7 +10,8 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.PlaylistAdd
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -41,6 +42,7 @@ fun SongItem(
     onToggleFavorite: (Song) -> Unit,
     onAddToPlaylist: (Song) -> Unit,
     onDeleteSong: (Song) -> Unit,
+    onShowInfo: (Song) -> Unit,
     onRemoveFromPlaylist: ((Song) -> Unit)? = null
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -69,7 +71,8 @@ fun SongItem(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(56.dp)
-                    .clip(MaterialTheme.shapes.medium),
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable { onShowInfo(song) },
                 loading = {
                     Box(modifier = Modifier
                         .size(56.dp)
@@ -108,6 +111,16 @@ fun SongItem(
                     onDismissRequest = { menuExpanded = false }
                 ) {
                     DropdownMenuItem(
+                        text = { Text("Información") },
+                        onClick = {
+                            onShowInfo(song)
+                            menuExpanded = false
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Info, contentDescription = null)
+                        }
+                    )
+                    DropdownMenuItem(
                         text = { Text(if (song.isFavorite) "Quitar de favoritos" else "Añadir a favoritos") },
                         onClick = {
                             onToggleFavorite(song)
@@ -124,7 +137,7 @@ fun SongItem(
                             menuExpanded = false
                         },
                         leadingIcon = {
-                            Icon(Icons.Default.PlaylistAdd, contentDescription = null)
+                            Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null)
                         }
                     )
                     if (onRemoveFromPlaylist != null) {

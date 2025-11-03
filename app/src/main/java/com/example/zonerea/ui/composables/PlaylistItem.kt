@@ -3,7 +3,7 @@ package com.example.zonerea.ui.composables
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -21,7 +21,7 @@ fun PlaylistItem(
     ListItem(
         headlineContent = { Text(playlist.name) },
         leadingContent = {
-            Icon(Icons.Default.QueueMusic, contentDescription = "Playlist")
+            Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Playlist")
         },
         trailingContent = {
             IconButton(onClick = { onDelete(playlist) }) {

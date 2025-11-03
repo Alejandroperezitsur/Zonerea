@@ -7,24 +7,45 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.palette.graphics.Palette
+import android.graphics.drawable.BitmapDrawable
+import coil.ImageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.animateContentSize
 import com.example.zonerea.playback.Player
 import com.example.zonerea.ui.viewmodel.MainViewModel
+import com.example.zonerea.ui.composables.AudioVisualizer
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
@@ -53,7 +74,7 @@ fun PlayerScreen(
                 title = { Text("Reproduciendo Ahora", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Atrás")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
                     }
                 },
                 actions = {
@@ -65,7 +86,8 @@ fun PlayerScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                windowInsets = TopAppBarDefaults.windowInsets
             )
         }
     ) { padding ->
@@ -79,6 +101,30 @@ fun PlayerScreen(
             if (song != null) {
                 var verticalDragOffset by remember { mutableFloatStateOf(0f) }
                 var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
+                val context = LocalContext.current
+                val defaultColor = MaterialTheme.colorScheme.primary
+                var visualizerColor by remember { mutableStateOf(defaultColor) }
+                LaunchedEffect(song.albumArtUri) {
+                    visualizerColor = defaultColor
+                    try {
+                        val request = ImageRequest.Builder(context)
+                            .data(song.albumArtUri)
+                            .allowHardware(false)
+                            .build()
+                        val result = ImageLoader(context).execute(request)
+                        val drawable = (result as? SuccessResult)?.drawable as? BitmapDrawable
+                        val bitmap = drawable?.bitmap
+                        if (bitmap != null) {
+                            val palette = Palette.from(bitmap).generate()
+                            val colorInt = palette.getVibrantColor(
+                                palette.getDominantColor(visualizerColor.toArgb())
+                            )
+                            visualizerColor = Color(colorInt)
+                        }
+                    } catch (_: Throwable) {
+                        // keep primary color on failure
+                    }
+                }
 
                 Column(
                     modifier = Modifier
@@ -113,40 +159,56 @@ fun PlayerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceAround
                 ) {
-                    // Album Art with Placeholder
-                    SubcomposeAsyncImage(
-                        model = song.albumArtUri,
-                        contentDescription = song.title,
-                        modifier = Modifier
-                            .fillMaxWidth(0.75f)
-                            .aspectRatio(1f)
-                            .clip(MaterialTheme.shapes.medium),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
+                    // Album Art with transitions
+                    AnimatedContent(
+                        targetState = song.albumArtUri,
+                        transitionSpec = {
+                            (fadeIn(animationSpec = tween(300)) + scaleIn(initialScale = 0.95f)) togetherWith
+                                    (fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 1.05f))
+                        }, label = "album_art_transition"
+                    ) { artUri ->
+                        SubcomposeAsyncImage(
+                            model = artUri,
+                            contentDescription = song.title,
+                            modifier = Modifier
+                                .fillMaxWidth(0.75f)
+                                .aspectRatio(1f)
+                                .clip(MaterialTheme.shapes.medium)
+                                .animateContentSize(),
+                            contentScale = ContentScale.Crop,
+                            loading = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
+                            },
+                            error = {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MusicNote,
+                                        contentDescription = "Nota Musical",
+                                        modifier = Modifier.size(96.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
-                        },
-                        error = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = "Nota Musical",
-                                    modifier = Modifier.size(96.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                        )
+                    }
+
+                    // Visualizador (animado)
+                    AudioVisualizer(
+                        isPlaying = isPlaying,
+                        modifier = Modifier.padding(horizontal = 24.dp),
+                        barColor = visualizerColor
                     )
 
                     // Song Info

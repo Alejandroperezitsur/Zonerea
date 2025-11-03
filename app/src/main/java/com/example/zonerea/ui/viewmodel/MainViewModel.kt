@@ -9,6 +9,7 @@ import com.example.zonerea.model.Playlist
 import com.example.zonerea.model.Song
 import com.example.zonerea.playback.MusicController
 import com.example.zonerea.playback.Player
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +19,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(
     private val songRepository: SongRepository,
     private val musicController: MusicController
@@ -89,6 +93,8 @@ class MainViewModel(
     val currentlyPlaying: StateFlow<Song?> = musicController.currentlyPlaying
     val isPlaying: StateFlow<Boolean> = musicController.isPlaying
     val progress: StateFlow<Float> = musicController.progress
+    val queue: StateFlow<List<Song>> = musicController.queue
+    val audioSessionId: StateFlow<Int?> = musicController.audioSessionId
 
     val isFavorite: StateFlow<Boolean> = currentlyPlaying.map { it?.isFavorite ?: false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -98,6 +104,13 @@ class MainViewModel(
 
     private val _repeatMode = MutableStateFlow(Player.REPEAT_MODE_OFF)
     val repeatMode: StateFlow<Int> = _repeatMode.asStateFlow()
+
+    // Sleep timer
+    private val _isSleepTimerActive = MutableStateFlow(false)
+    val isSleepTimerActive: StateFlow<Boolean> = _isSleepTimerActive.asStateFlow()
+    private val _sleepTimerMinutes = MutableStateFlow<Int?>(null)
+    val sleepTimerMinutes: StateFlow<Int?> = _sleepTimerMinutes.asStateFlow()
+    private var sleepTimerJob: Job? = null
 
     fun scanForSongs() {
         viewModelScope.launch {
@@ -167,6 +180,28 @@ class MainViewModel(
         musicController.setRepeatMode(nextRepeatMode)
     }
 
+    fun startSleepTimer(minutes: Int) {
+        sleepTimerJob?.cancel()
+        _sleepTimerMinutes.value = minutes
+        _isSleepTimerActive.value = true
+        sleepTimerJob = viewModelScope.launch {
+            try {
+                delay(minutes * 60_000L)
+                musicController.pause()
+            } finally {
+                _isSleepTimerActive.value = false
+                _sleepTimerMinutes.value = null
+            }
+        }
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
+        _isSleepTimerActive.value = false
+        _sleepTimerMinutes.value = null
+    }
+
     fun toggleFavoriteSong(song: Song) {
         viewModelScope.launch {
             songRepository.setFavorite(song.id, !song.isFavorite)
@@ -203,8 +238,21 @@ class MainViewModel(
         }
     }
 
+    fun playAt(index: Int) {
+        musicController.playAt(index)
+    }
+
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        musicController.moveQueueItem(fromIndex, toIndex)
+    }
+
+    fun removeQueueItem(index: Int) {
+        musicController.removeQueueItem(index)
+    }
+
     override fun onCleared() {
         super.onCleared()
+        sleepTimerJob?.cancel()
         musicController.release()
     }
 }

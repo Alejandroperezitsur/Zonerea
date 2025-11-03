@@ -46,7 +46,7 @@ class MusicService : MediaSessionService() {
             player.release()
             release()
         }
-        stopForeground(true)
+        stopForeground(android.app.Service.STOP_FOREGROUND_REMOVE)
         stopSelf()
         super.onDestroy()
     }

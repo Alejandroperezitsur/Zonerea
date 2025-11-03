@@ -53,14 +53,8 @@ fun ZonereaTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
-        }
-    }
+    // Edge-to-edge se gestiona desde MainActivity con enableEdgeToEdge.
+    // Evitamos manipular directamente statusBarColor para no usar APIs deprecadas.
 
     MaterialTheme(
         colorScheme = colorScheme,

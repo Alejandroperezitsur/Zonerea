@@ -6,7 +6,9 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,6 +26,7 @@ class MainActivity : ComponentActivity() {
 
     private var musicController: MusicController? = null
     private lateinit var viewModel: MainViewModel
+    private var isInitialized: Boolean = false
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -50,7 +53,12 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Instala splash screen antes de super.onCreate para transición suave
+        val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
+        // Habilita edge-to-edge para dibujar detrás de barras del sistema
+        enableEdgeToEdge()
+        splash.setKeepOnScreenCondition { !isInitialized }
         requestPermissions()
     }
 
@@ -79,6 +87,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        isInitialized = true
     }
 
     private fun requestPermissions() {

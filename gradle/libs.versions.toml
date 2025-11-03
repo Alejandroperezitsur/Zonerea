@@ -18,6 +18,7 @@ media3 = "1.8.0"
 coil = "2.6.0"
 guava = "33.2.0-android"
 materialIconsExtended = "1.6.7"
+splashscreen = "1.0.1"
 
 [libraries]
 # Core
@@ -52,6 +53,7 @@ androidx-media3-session = { group = "androidx.media3", name = "media3-session", 
 # Other
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
 
 # Test
 junit = { group = "junit", name = "junit", version.ref = "junit" }

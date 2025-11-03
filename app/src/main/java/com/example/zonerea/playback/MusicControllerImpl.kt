@@ -3,6 +3,7 @@ package com.example.zonerea.playback
 import android.content.ComponentName
 import android.content.Context
 import android.os.Bundle
+import androidx.core.os.BundleCompat
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -34,6 +35,12 @@ class MusicControllerImpl(private val context: Context) : MusicController {
     private val _progress = MutableStateFlow(0f)
     override val progress = _progress.asStateFlow()
 
+    private val _queue = MutableStateFlow<List<Song>>(emptyList())
+    override val queue = _queue.asStateFlow()
+
+    private val _audioSessionId = MutableStateFlow<Int?>(null)
+    override val audioSessionId = _audioSessionId.asStateFlow()
+
     init {
         val sessionToken = SessionToken(context, ComponentName(context, MusicService::class.java))
         controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
@@ -42,9 +49,18 @@ class MusicControllerImpl(private val context: Context) : MusicController {
                 mediaController = controllerFuture.get()
                 mediaController?.addListener(object : Player.Listener {
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                        mediaItem?.mediaMetadata?.extras?.getParcelable<Song>("song")?.let {
-                            _currentlyPlaying.value = it
+                        mediaItem?.mediaMetadata?.extras?.let { extras ->
+                            BundleCompat.getParcelable(extras, "song", Song::class.java)?.let {
+                                _currentlyPlaying.value = it
+                            }
                         }
+                        // Refresh queue when current item changes
+                        refreshQueue()
+                    }
+
+                    override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+                        // Timeline changed (items added/removed/moved)
+                        refreshQueue()
                     }
 
                     override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -87,6 +103,8 @@ class MusicControllerImpl(private val context: Context) : MusicController {
             controller.setMediaItems(mediaItems, playlist.indexOf(song), 0)
             controller.prepare()
             controller.play()
+            // Update queue state
+            _queue.value = playlist
         }
     }
 
@@ -122,7 +140,50 @@ class MusicControllerImpl(private val context: Context) : MusicController {
         mediaController?.repeatMode = repeatMode
     }
 
+    override fun playAt(index: Int) {
+        mediaController?.let { controller ->
+            if (index in 0 until controller.mediaItemCount) {
+                controller.seekToDefaultPosition(index)
+                controller.play()
+            }
+        }
+    }
+
+    override fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        mediaController?.let { controller ->
+            val count = controller.mediaItemCount
+            if (fromIndex in 0 until count && toIndex in 0 until count) {
+                controller.moveMediaItem(fromIndex, toIndex)
+                refreshQueue()
+            }
+        }
+    }
+
+    override fun removeQueueItem(index: Int) {
+        mediaController?.let { controller ->
+            val count = controller.mediaItemCount
+            if (index in 0 until count) {
+                controller.removeMediaItem(index)
+                refreshQueue()
+            }
+        }
+    }
+
     override fun release() {
         MediaController.releaseFuture(controllerFuture)
+    }
+
+    private fun refreshQueue() {
+        mediaController?.let { controller ->
+            val items = mutableListOf<Song>()
+            val count = controller.mediaItemCount
+            for (i in 0 until count) {
+                val item = controller.getMediaItemAt(i)
+                val extras = item.mediaMetadata.extras
+                val song = extras?.let { BundleCompat.getParcelable(it, "song", Song::class.java) }
+                if (song != null) items.add(song)
+            }
+            _queue.value = items
+        }
     }
 }
