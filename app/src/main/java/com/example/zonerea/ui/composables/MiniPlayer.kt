@@ -3,6 +3,9 @@ package com.example.zonerea.ui.composables
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -23,14 +26,20 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -54,6 +63,17 @@ fun MiniPlayer(
         ),
         label = "mini_player_progress_animation"
     )
+    val haptics = LocalHapticFeedback.current
+    val titlePulse = remember { Animatable(1f) }
+    val artistFade = remember { Animatable(0.72f) }
+    LaunchedEffect(song.id) {
+        try {
+            titlePulse.snapTo(0.96f)
+            titlePulse.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
+            artistFade.snapTo(0.48f)
+            artistFade.animateTo(0.72f, tween(durationMillis = 160, easing = LinearOutSlowInEasing))
+        } catch (_: Exception) { }
+    }
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -65,8 +85,9 @@ fun MiniPlayer(
                 }
             }
             .clickable(onClick = onClick),
-        shadowElevation = 8.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        shadowElevation = 10.dp,
+        tonalElevation = 6.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
     ) {
         Column {
             Row(
@@ -100,30 +121,49 @@ fun MiniPlayer(
                                 }
                             }
                         )
-                        Column(modifier = Modifier.padding(start = 16.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .padding(start = 16.dp)
+                                .graphicsLayer {
+                                    scaleX = titlePulse.value
+                                    scaleY = titlePulse.value
+                                }
+                        ) {
                             Text(currentSong.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-                            Text(currentSong.artist, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                            Text(
+                                currentSong.artist,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                color = LocalContentColor.current.copy(alpha = artistFade.value),
+                                modifier = Modifier.graphicsLayer { alpha = artistFade.value }
+                            )
                         }
                     }
                 }
 
                 AnimatedContent(targetState = isPlaying, label = "play_pause_button") {
-                    IconButton(onClick = onPlayPause) {
-                        Icon(
-                            imageVector = if (it) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (it) "Pausar" else "Reproducir",
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier.size(40.dp),
+                            strokeWidth = 3.dp,
+                            color = MaterialTheme.colorScheme.primary
                         )
+                        IconButton(onClick = {
+                            haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                            onPlayPause()
+                        }) {
+                            Icon(
+                                imageVector = if (it) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (it) "Pausar" else "Reproducir",
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
-            LinearProgressIndicator(
-                progress = { animatedProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-            )
+            // Retiramos la barra lineal a favor del indicador circular
         }
     }
 }

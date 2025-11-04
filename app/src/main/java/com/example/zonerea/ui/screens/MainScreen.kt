@@ -2,6 +2,8 @@ package com.example.zonerea.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +35,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -50,10 +54,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import com.example.zonerea.model.Playlist
@@ -383,7 +386,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                         label = { Text("Artista") },
                                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
                                     )
-                                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     FilterChip(
                                         selected = currentFilter is FilterType.Album,
                                         onClick = {
@@ -398,7 +401,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                         label = { Text("Álbum") },
                                         leadingIcon = { Icon(Icons.Default.Album, contentDescription = null) }
                                     )
-                                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     FilterChip(
                                         selected = currentFilter is FilterType.Playlist,
                                         onClick = {
@@ -416,7 +419,11 @@ fun MainScreen(viewModel: MainViewModel) {
                                 }
                             }
                         } else {
-                            Text("Zonerea")
+                            Text(
+                                text = "Zonerea",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     },
                     actions = {
@@ -435,31 +442,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                     tint = if (isSleepTimerActive) MaterialTheme.colorScheme.primary else LocalContentColor.current
                                 )
                             }
-                            val themeLabel = currentTheme?.let { appThemeDisplayName(it) } ?: "Sistema"
-                            val themeScheme = currentTheme?.let { colorSchemeFor(it) }
-                            val themeSwatchColor = themeScheme?.primary
-                            val swatchBorderColor = themeScheme?.onPrimary
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (themeSwatchColor != null) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(12.dp)
-                                            .background(themeSwatchColor)
-                                            .border(BorderStroke(1.dp, swatchBorderColor ?: MaterialTheme.colorScheme.outline))
-                                    )
-                                    Spacer(modifier = Modifier.padding(start = 6.dp))
-                                }
-                                Text(
-                                    text = themeLabel,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier
-                                        .padding(end = 4.dp)
-                                        .clickable { showThemePickerDialog = true }
-                                )
-                            }
+                            // Solo mostrar el icono/botón de temas (sin label ni swatch)
                             IconButton(onClick = { showThemePickerDialog = true }) {
                                 Icon(Icons.Default.Palette, contentDescription = "Cambiar tema")
                             }
@@ -472,38 +455,62 @@ fun MainScreen(viewModel: MainViewModel) {
                 )
             },
             bottomBar = {
-                AnimatedVisibility(
-                    visible = currentlyPlaying != null,
-                    enter = slideInVertically { it } + fadeIn(),
-                    exit = slideOutVertically { it } + fadeOut()
-                ) {
-                    currentlyPlaying?.let {
-                        MiniPlayer(
-                            song = it,
-                            isPlaying = isPlaying,
-                            progress = progress,
-                            onPlayPause = { viewModel.togglePlayPause() },
-                            onClick = { isPlayerExpanded = true }
-                        )
+                Column {
+                    val haptics = LocalHapticFeedback.current
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        tonalElevation = 6.dp
+                    ) {
+                        tabs.take(4).forEachIndexed { index, (title, icon) ->
+                            val isSelected = pagerState.currentPage == index
+                            val iconScale by animateFloatAsState(
+                                targetValue = if (isSelected) 1.12f else 1f,
+                                label = "nav_icon_scale"
+                            )
+                            val tint by animateColorAsState(
+                                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                                label = "nav_tint"
+                            )
+                            NavigationBarItem(
+                                selected = isSelected,
+                                onClick = {
+                                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                    scope.launch { pagerState.animateScrollToPage(index) }
+                                },
+                                icon = {
+                                    Icon(
+                                        icon,
+                                        contentDescription = title,
+                                        modifier = Modifier.graphicsLayer {
+                                            scaleX = iconScale
+                                            scaleY = iconScale
+                                        },
+                                        tint = tint
+                                    )
+                                },
+                                label = { Text(title, color = tint, maxLines = 1) }
+                            )
+                        }
+                    }
+                    AnimatedVisibility(
+                        visible = currentlyPlaying != null,
+                        enter = slideInVertically { it } + fadeIn(),
+                        exit = slideOutVertically { it } + fadeOut()
+                    ) {
+                        currentlyPlaying?.let {
+                            MiniPlayer(
+                                song = it,
+                                isPlaying = isPlaying,
+                                progress = progress,
+                                onPlayPause = { viewModel.togglePlayPause() },
+                                onClick = { isPlayerExpanded = true }
+                            )
+                        }
                     }
                 }
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding)) {
-                ScrollableTabRow(selectedTabIndex = pagerState.currentPage) {
-                    tabs.forEachIndexed { index, (title, icon) ->
-                        Tab(
-                            text = { Text(title) },
-                            icon = { Icon(icon, contentDescription = title) },
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            }
-                        )
-                    }
-                }
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.weight(1f)

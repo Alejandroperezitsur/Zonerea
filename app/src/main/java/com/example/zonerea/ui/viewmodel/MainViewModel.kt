@@ -295,6 +295,11 @@ class MainViewModel(
         musicController.removeQueueItem(index)
     }
 
+    // Comandos personalizados hacia el servicio (para efectos de audio)
+    fun sendPlaybackCommand(action: String, args: android.os.Bundle = android.os.Bundle()): android.os.Bundle? {
+        return musicController.sendCustomCommand(action, args)
+    }
+
     override fun onCleared() {
         super.onCleared()
         sleepTimerJob?.cancel()

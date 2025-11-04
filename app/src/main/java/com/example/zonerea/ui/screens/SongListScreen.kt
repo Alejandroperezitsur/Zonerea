@@ -199,46 +199,14 @@ fun SongListScreen(
                 } else {
                     null
                 }
-                val dismissState = rememberSwipeToDismissBoxState(
-                    confirmValueChange = { value ->
-                        if (value == SwipeToDismissBoxValue.EndToStart || value == SwipeToDismissBoxValue.StartToEnd) {
-                            if (onRemove != null) {
-                                onRemove.invoke(song)
-                            } else {
-                                viewModel.deleteSong(song)
-                            }
-                        }
-                        true
-                    }
-                )
-                SwipeToDismissBox(
-                    state = dismissState,
-                    backgroundContent = {
-                        // Fondo con color de error y un ícono de eliminar
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(color = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = null,
-                                tint = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.align(Alignment.Center)
-                            )
-                        }
-                    },
-                    content = {
-                        SongItem(
-                            song = song,
-                            onClick = { viewModel.playSong(song) },
-                            onToggleFavorite = { viewModel.toggleFavoriteSong(song) },
-                            onAddToPlaylist = { songToAddToPlaylist = it },
-                            onDeleteSong = { viewModel.deleteSong(song) },
-                            onShowInfo = { songInfo = it },
-                            onRemoveFromPlaylist = onRemove
-                        )
-                    }
+                SongItem(
+                    song = song,
+                    onClick = { viewModel.playSong(song) },
+                    onToggleFavorite = { viewModel.toggleFavoriteSong(song) },
+                    onAddToPlaylist = { songToAddToPlaylist = it },
+                    onDeleteSong = { viewModel.deleteSong(song) },
+                    onShowInfo = { songInfo = it },
+                    onRemoveFromPlaylist = onRemove
                 )
             }
             }

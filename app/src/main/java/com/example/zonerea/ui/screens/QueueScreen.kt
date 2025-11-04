@@ -123,139 +123,112 @@ fun QueueScreen(
                 ) { _ ->
                 var menuExpanded by remember { mutableStateOf(false) }
 
-                val dismissState = rememberSwipeToDismissBoxState(
-                    confirmValueChange = { value ->
-                        if (value == SwipeToDismissBoxValue.EndToStart || value == SwipeToDismissBoxValue.StartToEnd) {
-                            viewModel.removeQueueItem(index)
-                        }
-                        true
-                    }
-                )
-                SwipeToDismissBox(
-                    state = dismissState,
-                    backgroundContent = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(color = MaterialTheme.colorScheme.errorContainer)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onErrorContainer,
-                                modifier = Modifier.align(androidx.compose.ui.Alignment.Center)
-                            )
-                        }
-                    },
-                    content = {
-                        ListItem(
-                            headlineContent = { Text(song.title) },
-                            overlineContent = { Text(song.artist, style = MaterialTheme.typography.bodySmall) },
-                            trailingContent = {
-                                Box {
-                                    IconButton(onClick = { menuExpanded = true }) {
-                                        Icon(Icons.Default.MoreVert, contentDescription = "Más opciones")
+                ListItem(
+                    headlineContent = { Text(song.title) },
+                    overlineContent = { Text(song.artist, style = MaterialTheme.typography.bodySmall) },
+                    trailingContent = {
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Más opciones")
+                            }
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Reproducir") },
+                                    onClick = {
+                                        viewModel.playAt(index)
+                                        menuExpanded = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.PlayArrow, contentDescription = null)
                                     }
-                                    DropdownMenu(
-                                        expanded = menuExpanded,
-                                        onDismissRequest = { menuExpanded = false }
-                                    ) {
-                                        DropdownMenuItem(
-                                            text = { Text("Reproducir") },
-                                            onClick = {
-                                                viewModel.playAt(index)
-                                                menuExpanded = false
-                                            },
-                                            leadingIcon = {
-                                                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                                            }
-                                        )
-                                        if (index > 0) {
-                                            DropdownMenuItem(
-                                                text = { Text("Mover arriba") },
-                                                onClick = {
-                                                    viewModel.moveQueueItem(index, index - 1)
-                                                    menuExpanded = false
-                                                },
-                                                leadingIcon = {
-                                                    Icon(Icons.Default.ArrowUpward, contentDescription = null)
-                                                }
-                                            )
+                                )
+                                if (index > 0) {
+                                    DropdownMenuItem(
+                                        text = { Text("Mover arriba") },
+                                        onClick = {
+                                            viewModel.moveQueueItem(index, index - 1)
+                                            menuExpanded = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.ArrowUpward, contentDescription = null)
                                         }
-                                        if (index < queue.size - 1) {
-                                            DropdownMenuItem(
-                                                text = { Text("Mover abajo") },
-                                                onClick = {
-                                                    viewModel.moveQueueItem(index, index + 1)
-                                                    menuExpanded = false
-                                                },
-                                                leadingIcon = {
-                                                    Icon(Icons.Default.ArrowDownward, contentDescription = null)
-                                                }
-                                            )
+                                    )
+                                }
+                                if (index < queue.size - 1) {
+                                    DropdownMenuItem(
+                                        text = { Text("Mover abajo") },
+                                        onClick = {
+                                            viewModel.moveQueueItem(index, index + 1)
+                                            menuExpanded = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.ArrowDownward, contentDescription = null)
                                         }
-                                        DropdownMenuItem(
-                                            text = { Text("Eliminar de cola") },
-                                            onClick = {
-                                                viewModel.removeQueueItem(index)
-                                                menuExpanded = false
-                                            },
-                                            leadingIcon = {
-                                                Icon(Icons.Default.Delete, contentDescription = null)
-                                            }
-                                        )
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text("Eliminar de cola") },
+                                    onClick = {
+                                        viewModel.removeQueueItem(index)
+                                        menuExpanded = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Delete, contentDescription = null)
+                                    }
+                                )
+                            }
+                        }
+                        // Drag handle
+                        IconButton(
+                            onClick = {},
+                            modifier = Modifier
+                                .pointerInput(index) {
+                                detectDragGestures(
+                                    onDragStart = {
+                                        draggingIndex = index
+                                        dragAccumulated = 0f
+                                    },
+                                    onDragEnd = {
+                                        draggingIndex = null
+                                        dragAccumulated = 0f
+                                    }
+                                ) { _, dragAmount ->
+                                    val current = draggingIndex ?: return@detectDragGestures
+                                    dragAccumulated += dragAmount.y
+                                    val steps = (dragAccumulated / itemHeightPx).toInt()
+                                    if (steps != 0) {
+                                        val target = (current + steps).coerceIn(0, queue.lastIndex)
+                                        if (target != current) {
+                                            viewModel.moveQueueItem(current, target)
+                                            draggingIndex = target
+                                            // reduce accumulated by full steps
+                                            dragAccumulated -= steps * itemHeightPx
+                                        }
+                                    }
+                                    // Auto-scroll near edges
+                                    val first = listState.firstVisibleItemIndex
+                                    val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: first
+                                    if (current <= first + 1 && dragAmount.y < 0) {
+                                        // scroll up by one item
+                                        val target = (first - 1).coerceAtLeast(0)
+                                        scope.launch { listState.animateScrollToItem(target) }
+                                    } else if (current >= last - 1 && dragAmount.y > 0) {
+                                        // scroll down by one item
+                                        val target = (last + 1).coerceAtMost(queue.lastIndex)
+                                        scope.launch { listState.animateScrollToItem(target) }
                                     }
                                 }
-                                // Drag handle
-                                IconButton(
-                                    onClick = {},
-                                    modifier = Modifier
-                                        .pointerInput(index) {
-                                        detectDragGestures(
-                                            onDragStart = {
-                                                draggingIndex = index
-                                                dragAccumulated = 0f
-                                            },
-                                            onDragEnd = {
-                                                draggingIndex = null
-                                                dragAccumulated = 0f
-                                            }
-                                        ) { _, dragAmount ->
-                                            val current = draggingIndex ?: return@detectDragGestures
-                                            dragAccumulated += dragAmount.y
-                                            val steps = (dragAccumulated / itemHeightPx).toInt()
-                                            if (steps != 0) {
-                                                val target = (current + steps).coerceIn(0, queue.lastIndex)
-                                                if (target != current) {
-                                                    viewModel.moveQueueItem(current, target)
-                                                    draggingIndex = target
-                                                    // reduce accumulated by full steps
-                                                    dragAccumulated -= steps * itemHeightPx
-                                                }
-                                            }
-                                            // Auto-scroll near edges
-                                            val first = listState.firstVisibleItemIndex
-                                            val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: first
-                                            if (current <= first + 1 && dragAmount.y < 0) {
-                                                // scroll up by one item
-                                                val target = (first - 1).coerceAtLeast(0)
-                                                scope.launch { listState.animateScrollToItem(target) }
-                                            } else if (current >= last - 1 && dragAmount.y > 0) {
-                                                // scroll down by one item
-                                                val target = (last + 1).coerceAtMost(queue.lastIndex)
-                                                scope.launch { listState.animateScrollToItem(target) }
-                                            }
-                                        }
-                                    }
-                                    ) {
-                                        Icon(Icons.Default.DragHandle, contentDescription = "Arrastrar")
-                                    }
                             }
-                            ,
-                            modifier = Modifier
-                                .animateContentSize()
-                        )
+                            ) {
+                                Icon(Icons.Default.DragHandle, contentDescription = "Arrastrar")
+                            }
                     }
+                    ,
+                    modifier = Modifier
+                        .animateContentSize()
                 )
                 }
             }

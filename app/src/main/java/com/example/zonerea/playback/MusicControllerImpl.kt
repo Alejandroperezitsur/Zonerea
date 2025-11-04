@@ -9,6 +9,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.media3.session.SessionCommand
 import com.example.zonerea.model.Song
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
@@ -171,6 +172,16 @@ class MusicControllerImpl(private val context: Context) : MusicController {
 
     override fun release() {
         MediaController.releaseFuture(controllerFuture)
+    }
+
+    override fun sendCustomCommand(action: String, args: Bundle): Bundle? {
+        val controller = mediaController ?: return null
+        return try {
+            val result = controller.sendCustomCommand(SessionCommand(action, Bundle.EMPTY), args)
+            result.get().extras
+        } catch (_: Throwable) {
+            null
+        }
     }
 
     private fun refreshQueue() {

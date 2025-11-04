@@ -6,6 +6,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 enum class AppTheme(val isDark: Boolean) {
+    // Automático (día/noche)
+    Auto(false),
     // Claros
     LightAzul(false),
     LightVerde(false),
@@ -23,6 +25,7 @@ enum class AppTheme(val isDark: Boolean) {
 }
 
 fun appThemeDisplayName(theme: AppTheme): String = when (theme) {
+    AppTheme.Auto -> "Automático (día/noche)"
     AppTheme.LightAzul -> "Azul (claro)"
     AppTheme.LightVerde -> "Verde (claro)"
     AppTheme.LightRojo -> "Rojo (claro)"
@@ -38,6 +41,13 @@ fun appThemeDisplayName(theme: AppTheme): String = when (theme) {
 }
 
 fun colorSchemeFor(theme: AppTheme): ColorScheme = when (theme) {
+    // Auto se gestiona en ZonereaTheme y no debería usarse aquí.
+    // Proveemos un esquema por defecto claro para evitar fallos si se invoca accidentalmente.
+    AppTheme.Auto -> lightColorScheme(
+        primary = Color(0xFF1565C0),
+        secondary = Color(0xFF03A9F4),
+        tertiary = Color(0xFF00BCD4)
+    )
     // Light schemes
     AppTheme.LightAzul -> lightColorScheme(
         primary = Color(0xFF1565C0),

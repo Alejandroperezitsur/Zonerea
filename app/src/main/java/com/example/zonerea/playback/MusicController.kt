@@ -23,4 +23,7 @@ interface MusicController {
     fun moveQueueItem(fromIndex: Int, toIndex: Int)
     fun removeQueueItem(index: Int)
     fun release()
+
+    // Custom command passthrough to service
+    fun sendCustomCommand(action: String, args: android.os.Bundle = android.os.Bundle()): android.os.Bundle?
 }
