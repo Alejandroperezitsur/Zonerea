@@ -50,8 +50,8 @@ class MainActivity : ComponentActivity() {
         if (storagePermissionGranted && notificationPermissionGranted) {
             setupApplication()
         } else {
-            // Handle permission denial by closing the app
-            finish()
+            // Show a dedicated UI explaining required permissions
+            showPermissionsRequiredUI()
         }
     }
 
@@ -84,7 +84,8 @@ class MainActivity : ComponentActivity() {
         // 4. Set UI content
         setContent {
             val selectedTheme by viewModel.selectedTheme.collectAsState()
-            Crossfade(targetState = selectedTheme) { st ->
+            // Garantiza un estado inicial no nulo para evitar suposiciones peligrosas en arranque
+            Crossfade(targetState = selectedTheme ?: com.example.zonerea.ui.theme.AppTheme.Auto) { st ->
                 ZonereaTheme(selectedTheme = st) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
@@ -122,6 +123,49 @@ class MainActivity : ComponentActivity() {
             // Permissions are already granted
             setupApplication()
         }
+    }
+
+    private fun showPermissionsRequiredUI() {
+        val is13Plus = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+        val storagePermission = if (is13Plus) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        val storageGranted = ContextCompat.checkSelfPermission(this, storagePermission) == PackageManager.PERMISSION_GRANTED
+        val notificationsGranted = if (is13Plus) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+        // Detectar si el usuario marcó "No volver a preguntar" (denegación permanente)
+        val storageRationale = androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(this, storagePermission)
+        val notifRationale = if (is13Plus) {
+            androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.POST_NOTIFICATIONS)
+        } else false
+        val preferOpenSettings = (!storageGranted && !storageRationale) || (is13Plus && !notificationsGranted && !notifRationale)
+
+        setContent {
+            // Use default theme fallbacks while permissions are not granted
+            com.example.zonerea.ui.theme.ZonereaTheme() {
+                com.example.zonerea.ui.composables.PermissionsRequiredScreen(
+                    storageGranted = storageGranted,
+                    notificationsGranted = notificationsGranted,
+                    isAndroid13Plus = is13Plus,
+                    preferOpenSettings = preferOpenSettings,
+                    onRequestPermissions = { requestPermissions() },
+                    onOpenSettings = { openAppSettings() }
+                )
+            }
+        }
+    }
+
+    private fun openAppSettings() {
+        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = android.net.Uri.fromParts("package", packageName, null)
+        }
+        startActivity(intent)
     }
 
     override fun onDestroy() {

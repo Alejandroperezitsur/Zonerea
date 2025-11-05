@@ -455,7 +455,7 @@ fun PlayerScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .semantics {
-                                        stateDescription = "Tiempo ${formatDuration((animatedProgress * (song.duration ?: 0L)).toLong())} de ${formatDuration(song.duration ?: 0L)}"
+                                        stateDescription = "Tiempo ${formatDuration((animatedProgress * song.duration).toLong())} de ${formatDuration(song.duration)}"
                                     },
                                 interactionSource = sliderInteraction,
                                 colors = SliderDefaults.colors(
@@ -470,11 +470,11 @@ fun PlayerScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = formatDuration((animatedProgress * (song.duration ?: 0L)).toLong()),
+                                text = formatDuration((animatedProgress * song.duration).toLong()),
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(
-                                text = formatDuration(song.duration ?: 0L),
+                                text = formatDuration(song.duration),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
