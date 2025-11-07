@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Splash Screen Theme -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Set the splash screen background, animated icon, and destination theme -->
+        <item name="windowSplashScreenBackground">@color/white</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.Zonerea</item>
+    </style>
 
-    <style name="Theme.Zonerea" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Main Application Theme -->
+    <style name="Theme.Zonerea" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Original app theme attributes can be placed here -->
+    </style>
 </resources>

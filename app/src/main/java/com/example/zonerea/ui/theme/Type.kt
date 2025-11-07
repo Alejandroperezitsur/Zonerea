@@ -9,12 +9,14 @@ import androidx.compose.ui.unit.sp
 import com.example.zonerea.R
 
 // Set of Material typography styles to start with
-private val Poppins = FontFamily(
-    Font(R.font.poppins, FontWeight.Normal),
-    Font(R.font.poppins, FontWeight.Medium),
-    Font(R.font.poppins, FontWeight.SemiBold),
-    Font(R.font.poppins, FontWeight.Bold)
-)
+private val Poppins: FontFamily = runCatching {
+    FontFamily(
+        Font(R.font.poppins, FontWeight.Normal),
+        Font(R.font.poppins, FontWeight.Medium),
+        Font(R.font.poppins, FontWeight.SemiBold),
+        Font(R.font.poppins, FontWeight.Bold)
+    )
+}.getOrElse { FontFamily.Default }
 
 val Typography = Typography(
     displayLarge = TextStyle(

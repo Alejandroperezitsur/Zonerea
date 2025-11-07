@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.core.os.BundleCompat
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
+import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -25,7 +26,8 @@ class MusicControllerImpl(private val context: Context) : MusicController {
 
     private var mediaController: MediaController? = null
     private lateinit var controllerFuture: ListenableFuture<MediaController>
-    private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
+    private val scopeJob = Job()
+    private val coroutineScope = CoroutineScope(Dispatchers.Main + scopeJob)
 
     private val _currentlyPlaying = MutableStateFlow<Song?>(null)
     override val currentlyPlaying = _currentlyPlaying.asStateFlow()
@@ -89,6 +91,7 @@ class MusicControllerImpl(private val context: Context) : MusicController {
 
     override fun play(song: Song, playlist: List<Song>) {
         mediaController?.let { controller ->
+            if (playlist.isEmpty()) return
             val mediaItems = playlist.map { s ->
                 MediaItem.Builder()
                     .setUri(s.uri.toUri())
@@ -101,7 +104,8 @@ class MusicControllerImpl(private val context: Context) : MusicController {
                         .build())
                     .build()
             }
-            controller.setMediaItems(mediaItems, playlist.indexOf(song), 0)
+            val startIndex = playlist.indexOf(song).let { if (it >= 0) it else 0 }
+            controller.setMediaItems(mediaItems, startIndex, 0)
             controller.prepare()
             controller.play()
             // Update queue state
@@ -130,7 +134,13 @@ class MusicControllerImpl(private val context: Context) : MusicController {
     }
 
     override fun seekTo(position: Float) {
-        mediaController?.seekTo((position * (mediaController?.duration ?: 0L)).toLong())
+        mediaController?.let { controller ->
+            val duration = controller.duration
+            val clamped = position.coerceIn(0f, 1f)
+            if (controller.isCurrentMediaItemSeekable && duration != C.TIME_UNSET && duration > 0) {
+                controller.seekTo((clamped * duration).toLong())
+            }
+        }
     }
 
     override fun setShuffleMode(enabled: Boolean) {
@@ -171,7 +181,9 @@ class MusicControllerImpl(private val context: Context) : MusicController {
     }
 
     override fun release() {
+        scopeJob.cancel()
         MediaController.releaseFuture(controllerFuture)
+        mediaController = null
     }
 
     override fun sendCustomCommand(action: String, args: Bundle): Bundle? {
