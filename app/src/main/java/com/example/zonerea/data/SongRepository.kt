@@ -1,6 +1,9 @@
 package com.example.zonerea.data
 
 import android.content.Context
+import android.content.IntentSender
+import android.os.Build
+import android.app.RecoverableSecurityException
 import android.provider.MediaStore
 import androidx.core.net.toUri
 import com.example.zonerea.data.local.SongDao
@@ -124,12 +127,35 @@ class SongRepository(private val context: Context, private val songDao: SongDao)
             // Delete from Android MediaStore
             try {
                 context.contentResolver.delete(song.uri.toUri(), null, null)
+            } catch (e: SecurityException) {
+                // En Android 10+ puede requerir confirmación del usuario
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    throw e
+                } else {
+                    e.printStackTrace()
+                }
             } catch (e: Exception) {
-                // Log error or handle case where file might not exist
+                // Archivo ya inexistente u otro error no de seguridad
                 e.printStackTrace()
             }
             // Delete from local database
             songDao.deleteSong(song)
         }
+    }
+
+    /**
+     * Para Android 10+ devuelve un IntentSender que solicita confirmación del usuario
+     * para borrar el item de MediaStore. Debe lanzarse desde UI (Activity/Compose).
+     */
+    fun getDeleteRequestIntentSender(song: Song): IntentSender? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val uris = listOf(song.uri.toUri())
+            try {
+                val pi = MediaStore.createDeleteRequest(context.contentResolver, uris)
+                pi.intentSender
+            } catch (t: Throwable) {
+                null
+            }
+        } else null
     }
 }

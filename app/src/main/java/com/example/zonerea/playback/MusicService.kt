@@ -1,6 +1,5 @@
 package com.example.zonerea.playback
 
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
@@ -14,6 +13,7 @@ import android.media.audiofx.Equalizer
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Virtualizer
 import android.os.Bundle
+import androidx.core.os.BundleCompat
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionCommands
@@ -38,6 +38,7 @@ class MusicService : MediaSessionService() {
 
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
+    @Suppress("DEPRECATION")
     private var virtualizer: Virtualizer? = null
     private var attachedSessionId: Int = 0
     private lateinit var audioPreferences: AudioPreferences
@@ -75,6 +76,7 @@ class MusicService : MediaSessionService() {
                     return MediaSession.ConnectionResult.accept(availableSessionCommands, availablePlayerCommands)
                 }
 
+                @Suppress("DEPRECATION")
                 override fun onCustomCommand(
                     session: MediaSession,
                     controller: MediaSession.ControllerInfo,
@@ -157,8 +159,6 @@ class MusicService : MediaSessionService() {
             }
         })
 
-        createNotificationChannel()
-
         // Construimos una notificación manualmente para evitar los errores
         // Usamos un ícono estándar de Android para evitar un crash si el nuestro no existe
         val notification = buildStyleNotification()
@@ -184,15 +184,7 @@ class MusicService : MediaSessionService() {
         super.onDestroy()
     }
 
-    private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            NOTIFICATION_CHANNEL_ID,
-            NOTIFICATION_CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
-    }
+    @Suppress("DEPRECATION")
     private fun attachEffects(sessionId: Int) {
         if (sessionId == attachedSessionId) return
         // Release previous
@@ -236,7 +228,7 @@ class MusicService : MediaSessionService() {
     private fun currentSong(): Song? {
         return try {
             val extras = player.currentMediaItem?.mediaMetadata?.extras
-            extras?.getParcelable("song") as? Song
+            extras?.let { BundleCompat.getParcelable(it, "song", Song::class.java) }
         } catch (_: Throwable) { null }
     }
 

@@ -1,6 +1,9 @@
 package com.example.zonerea.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import android.app.Activity
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -104,6 +107,20 @@ fun MainScreen(viewModel: MainViewModel) {
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var currentFilter by remember { mutableStateOf<FilterType>(FilterType.None) }
     var songInfoDialogSong by remember { mutableStateOf<Song?>(null) }
+
+    // Launcher para solicitar confirmación de borrado del sistema (Android 10+)
+    val pendingDeleteIntent by viewModel.pendingDeleteIntent.collectAsState()
+    val deleteLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        viewModel.onSystemDeleteCompleted(result.resultCode == Activity.RESULT_OK)
+    }
+
+    LaunchedEffect(pendingDeleteIntent) {
+        pendingDeleteIntent?.let { sender ->
+            deleteLauncher.launch(IntentSenderRequest.Builder(sender).build())
+        }
+    }
 
     BackHandler(enabled = isPlayerExpanded) {
         isPlayerExpanded = false
@@ -773,5 +790,5 @@ fun MainScreen(viewModel: MainViewModel) {
                 }
             }
         }
-    }
+}
 }

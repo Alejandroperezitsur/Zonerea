@@ -23,6 +23,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import android.content.IntentSender
+import android.os.Build
+import android.app.RecoverableSecurityException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(
@@ -279,7 +282,16 @@ class MainViewModel(
 
     fun deleteSong(song: Song) {
         viewModelScope.launch {
-            songRepository.deleteSong(song)
+            try {
+                songRepository.deleteSong(song)
+            } catch (e: SecurityException) {
+                // En Android 10+ intentamos solicitar confirmación del sistema
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val sender = songRepository.getDeleteRequestIntentSender(song)
+                    _pendingDeleteIntent.value = sender
+                    _pendingDeleteSong.value = song
+                }
+            }
         }
     }
 
@@ -304,6 +316,25 @@ class MainViewModel(
         super.onCleared()
         sleepTimerJob?.cancel()
         musicController.release()
+    }
+
+    // --- Borrado seguro: estado y manejo ---
+    private val _pendingDeleteIntent = MutableStateFlow<IntentSender?>(null)
+    val pendingDeleteIntent: StateFlow<IntentSender?> = _pendingDeleteIntent.asStateFlow()
+
+    private val _pendingDeleteSong = MutableStateFlow<Song?>(null)
+    val pendingDeleteSong: StateFlow<Song?> = _pendingDeleteSong.asStateFlow()
+
+    fun onSystemDeleteCompleted(success: Boolean) {
+        val song = _pendingDeleteSong.value
+        _pendingDeleteIntent.value = null
+        _pendingDeleteSong.value = null
+        if (success && song != null) {
+            viewModelScope.launch {
+                // Tras confirmación del sistema, actualizamos DB local
+                songRepository.deleteSong(song)
+            }
+        }
     }
 }
 

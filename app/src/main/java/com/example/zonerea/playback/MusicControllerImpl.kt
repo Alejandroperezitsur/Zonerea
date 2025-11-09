@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 class MusicControllerImpl(private val context: Context) : MusicController {
 
     private var mediaController: MediaController? = null
-    private lateinit var controllerFuture: ListenableFuture<MediaController>
+    private val controllerFuture: ListenableFuture<MediaController>
     private val scopeJob = Job()
     private val coroutineScope = CoroutineScope(Dispatchers.Main + scopeJob)
 
@@ -99,7 +99,7 @@ class MusicControllerImpl(private val context: Context) : MusicController {
                         .setTitle(s.title)
                         .setArtist(s.artist)
                         .setAlbumTitle(s.album)
-                        .setArtworkUri(s.albumArtUri?.toUri())
+                        .setArtworkUri(s.albumArtUri.toUri())
                         .setExtras(Bundle().apply { putParcelable("song", s) })
                         .build())
                     .build()
