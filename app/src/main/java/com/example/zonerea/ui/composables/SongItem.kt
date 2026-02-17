@@ -1,9 +1,8 @@
 package com.example.zonerea.ui.composables
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.example.zonerea.model.Song
+import com.example.zonerea.ui.theme.ZonereaMotion
 
 @Composable
 fun SongItem(
@@ -57,7 +57,10 @@ fun SongItem(
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
-        animationSpec = tween(durationMillis = 120, easing = FastOutSlowInEasing),
+        animationSpec = spring(
+            dampingRatio = 0.85f,
+            stiffness = 400f
+        ),
         label = "song_item_press"
     )
 

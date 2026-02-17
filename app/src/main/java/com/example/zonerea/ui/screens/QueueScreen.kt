@@ -89,10 +89,30 @@ fun QueueScreen(
         bottomBar = {
             AnimatedVisibility(
                 visible = currentlyPlaying != null,
-                enter = slideInVertically(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)) { it } +
-                        fadeIn(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)),
-                exit = slideOutVertically(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)) { it } +
-                        fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing))
+                enter = slideInVertically(
+                    animationSpec = tween(
+                        durationMillis = ZonereaMotion.durationMedium,
+                        easing = ZonereaMotion.easingStandard
+                    )
+                ) { it } +
+                        fadeIn(
+                            animationSpec = tween(
+                                durationMillis = ZonereaMotion.durationMedium,
+                                easing = ZonereaMotion.easingStandard
+                            )
+                        ),
+                exit = slideOutVertically(
+                    animationSpec = tween(
+                        durationMillis = ZonereaMotion.durationFast,
+                        easing = ZonereaMotion.easingStandard
+                    )
+                ) { it } +
+                        fadeOut(
+                            animationSpec = tween(
+                                durationMillis = ZonereaMotion.durationFast,
+                                easing = ZonereaMotion.easingStandard
+                            )
+                        )
             ) {
                 currentlyPlaying?.let {
                     MiniPlayer(
@@ -119,7 +139,19 @@ fun QueueScreen(
                 AnimatedContent(
                     targetState = index,
                     label = "queue_item_transition",
-                    transitionSpec = { fadeIn(animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)) togetherWith fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)) }
+                    transitionSpec = {
+                        fadeIn(
+                            animationSpec = tween(
+                                durationMillis = ZonereaMotion.durationMedium,
+                                easing = ZonereaMotion.easingStandard
+                            )
+                        ) togetherWith fadeOut(
+                            animationSpec = tween(
+                                durationMillis = ZonereaMotion.durationFast,
+                                easing = ZonereaMotion.easingStandard
+                            )
+                        )
+                    }
                 ) { _ ->
                 var menuExpanded by remember { mutableStateOf(false) }
 

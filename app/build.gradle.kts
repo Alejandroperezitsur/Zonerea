@@ -7,22 +7,39 @@ plugins {
 }
 
 android {
-    namespace = "com.example.zonerea"
+    namespace = "com.apvlabs.zonerea"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.zonerea"
+        applicationId = "com.apvlabs.zonerea"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            val props = project.properties
+            val storeFilePath = props["RELEASE_STORE_FILE"] as String?
+            if (storeFilePath != null && storeFilePath.isNotEmpty()) {
+                storeFile = file(storeFilePath)
+                storePassword = props["RELEASE_STORE_PASSWORD"] as String?
+                keyAlias = props["RELEASE_KEY_ALIAS"] as String?
+                keyPassword = props["RELEASE_KEY_PASSWORD"] as String?
+            }
+        }
+    }
     buildTypes {
+        getByName("debug") {
+            isDebuggable = true
+        }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

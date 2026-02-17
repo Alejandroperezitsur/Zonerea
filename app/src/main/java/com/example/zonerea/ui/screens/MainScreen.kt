@@ -56,6 +56,7 @@ import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
@@ -76,6 +77,8 @@ import com.example.zonerea.ui.theme.fadeOutSpec
 import com.example.zonerea.ui.theme.slideSpec
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import com.example.zonerea.ui.theme.ZonereaSpacing
+import com.example.zonerea.ui.theme.ZonereaMotion
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -95,6 +98,7 @@ fun MainScreen(viewModel: MainViewModel) {
     val isSleepTimerActive by viewModel.isSleepTimerActive.collectAsState()
     val sleepTimerMinutes by viewModel.sleepTimerMinutes.collectAsState()
     val currentTheme by viewModel.selectedTheme.collectAsState()
+    val isScanning by viewModel.isScanning.collectAsState()
 
     var isPlayerExpanded by rememberSaveable { mutableStateOf(false) }
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
@@ -146,6 +150,46 @@ fun MainScreen(viewModel: MainViewModel) {
             },
             onOpenPlayer = { isPlayerExpanded = true }
         )
+        return
+    }
+
+    if (isScanning) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(ZonereaSpacing.md))
+                Text("Escaneando tu música...")
+            }
+        }
+        return
+    }
+
+    if (songs.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(ZonereaSpacing.md))
+                Text(
+                    "No se encontraron canciones en tu dispositivo.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(ZonereaSpacing.lg))
+                Button(onClick = { viewModel.scanForSongs() }) {
+                    Text("Re-escanear biblioteca")
+                }
+            }
+        }
         return
     }
 
@@ -387,7 +431,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                     }
                                 }
 
-                                Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                                Row(modifier = Modifier.fillMaxWidth().padding(top = ZonereaSpacing.sm)) {
                                     val hasQuery = searchQuery.isNotBlank()
                                     FilterChip(
                                         selected = currentFilter is FilterType.Artist,
@@ -403,7 +447,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                         label = { Text("Artista") },
                                         leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) }
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(ZonereaSpacing.sm))
                                     FilterChip(
                                         selected = currentFilter is FilterType.Album,
                                         onClick = {
@@ -418,7 +462,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                         label = { Text("Álbum") },
                                         leadingIcon = { Icon(Icons.Default.Album, contentDescription = null) }
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(ZonereaSpacing.sm))
                                     FilterChip(
                                         selected = currentFilter is FilterType.Playlist,
                                         onClick = {
@@ -438,8 +482,7 @@ fun MainScreen(viewModel: MainViewModel) {
                         } else {
                             Text(
                                 text = "Zonerea",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.headlineSmall
                             )
                         }
                     },
@@ -452,19 +495,58 @@ fun MainScreen(viewModel: MainViewModel) {
                             IconButton(onClick = { isSearchActive = true }) {
                                 Icon(Icons.Default.Search, contentDescription = "Buscar")
                             }
-                            IconButton(onClick = { showSleepTimerDialog = true }) {
-                                Icon(
-                                    imageVector = Icons.Default.Schedule,
-                                    contentDescription = "Temporizador",
-                                    tint = if (isSleepTimerActive) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                                )
-                            }
-                            // Solo mostrar el icono/botón de temas (sin label ni swatch)
-                            IconButton(onClick = { showThemePickerDialog = true }) {
-                                Icon(Icons.Default.Palette, contentDescription = "Cambiar tema")
-                            }
                             IconButton(onClick = { isQueueOpen = true }) {
                                 Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Abrir cola")
+                            }
+                            var showOverflow by rememberSaveable { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { showOverflow = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "Más opciones")
+                                }
+                                DropdownMenu(
+                                    expanded = showOverflow,
+                                    onDismissRequest = { showOverflow = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Re-escanear biblioteca") },
+                                        onClick = {
+                                            showOverflow = false
+                                            if (!isScanning) {
+                                                viewModel.scanForSongs()
+                                            }
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Refresh,
+                                                contentDescription = null
+                                            )
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Temporizador de sueño") },
+                                        onClick = {
+                                            showOverflow = false
+                                            showSleepTimerDialog = true
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Schedule,
+                                                contentDescription = null,
+                                                tint = if (isSleepTimerActive) MaterialTheme.colorScheme.primary else LocalContentColor.current
+                                            )
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Cambiar tema") },
+                                        onClick = {
+                                            showOverflow = false
+                                            showThemePickerDialog = true
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Palette, contentDescription = null)
+                                        }
+                                    )
+                                }
                             }
                         }
                     },
@@ -534,7 +616,10 @@ fun MainScreen(viewModel: MainViewModel) {
                 ) { page ->
                     Crossfade(
                         targetState = page,
-                        animationSpec = androidx.compose.animation.core.tween(durationMillis = 280, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                        animationSpec = androidx.compose.animation.core.tween(
+                            durationMillis = ZonereaMotion.durationMedium,
+                            easing = ZonereaMotion.easingStandard
+                        ),
                         label = "page_crossfade"
                     ) { targetPage ->
                         when (targetPage) {
@@ -576,7 +661,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                         },
                                         modifier = Modifier
                                             .align(Alignment.CenterEnd)
-                                            .padding(end = 4.dp)
+                                            .padding(end = ZonereaSpacing.xs)
                                     )
                                 }
                             }
@@ -584,7 +669,7 @@ fun MainScreen(viewModel: MainViewModel) {
                             1 -> LazyVerticalGrid(
                                 columns = GridCells.Fixed(2),
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(8.dp)
+                                contentPadding = PaddingValues(ZonereaSpacing.sm)
                             ) {
                                 items(albums) { album ->
                                     AlbumItem(album = album, onClick = {
@@ -603,7 +688,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                 }
                             }
 
-                            3 -> Box(modifier = Modifier.fillMaxSize()){
+                            3 -> Box(modifier = Modifier.fillMaxSize()) {
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                                     items(playlists) { playlist ->
                                         PlaylistItem(
@@ -616,11 +701,35 @@ fun MainScreen(viewModel: MainViewModel) {
                                         )
                                     }
                                 }
+                                if (playlists.isEmpty()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .padding(horizontal = ZonereaSpacing.lg),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(64.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(ZonereaSpacing.md))
+                                        Text(
+                                            text = "Aún no tienes playlists",
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                        Spacer(modifier = Modifier.height(ZonereaSpacing.lg))
+                                        Button(onClick = { showCreatePlaylistDialog = true }) {
+                                            Text("Crear playlist")
+                                        }
+                                    }
+                                }
                                 FloatingActionButton(
                                     onClick = { showCreatePlaylistDialog = true },
                                     modifier = Modifier
                                         .align(Alignment.BottomEnd)
-                                        .padding(16.dp)
+                                        .padding(ZonereaSpacing.md)
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = "Crear playlist")
                                 }

@@ -49,6 +49,9 @@ class MainViewModel(
 
     private val _filterType = MutableStateFlow<FilterType>(FilterType.None)
 
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
     // Tema seleccionado y actualización
     val selectedTheme: StateFlow<AppTheme?> = themePreferences.themeFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -139,7 +142,12 @@ class MainViewModel(
 
     fun scanForSongs() {
         viewModelScope.launch {
-            songRepository.scanForSongs()
+            _isScanning.value = true
+            try {
+                songRepository.scanForSongs()
+            } finally {
+                _isScanning.value = false
+            }
         }
     }
 

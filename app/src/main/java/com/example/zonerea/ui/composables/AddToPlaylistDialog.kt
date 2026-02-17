@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -44,10 +45,13 @@ fun AddToPlaylistDialog(
                 // List of existing playlists
                 LazyColumn {
                     items(playlists) {
-                        Text(it.name, modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onAddToExistingPlaylist(it) }
-                            .padding(vertical = 8.dp)
+                        Text(
+                            it.name,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .clickable { onAddToExistingPlaylist(it) }
+                                .padding(vertical = 8.dp)
                         )
                     }
                 }

@@ -62,6 +62,8 @@ import com.example.zonerea.ui.viewmodel.FilterType
 import com.example.zonerea.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 import com.example.zonerea.ui.composables.MiniPlayer
+import com.example.zonerea.ui.theme.ZonereaSpacing
+import com.example.zonerea.ui.theme.ZonereaMotion
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,7 +111,12 @@ fun SongListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = {
+                    Text(
+                        text = title,
+                        style = androidx.compose.material3.MaterialTheme.typography.titleMedium
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -134,10 +141,30 @@ fun SongListScreen(
         bottomBar = {
             AnimatedVisibility(
                 visible = currentlyPlaying != null,
-                enter = slideInVertically(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)) { it } +
-                        fadeIn(animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)),
-                exit = slideOutVertically(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)) { it } +
-                        fadeOut(animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing))
+                enter = slideInVertically(
+                    animationSpec = tween(
+                        durationMillis = ZonereaMotion.durationMedium,
+                        easing = ZonereaMotion.easingStandard
+                    )
+                ) { it } +
+                        fadeIn(
+                            animationSpec = tween(
+                                durationMillis = ZonereaMotion.durationMedium,
+                                easing = ZonereaMotion.easingStandard
+                            )
+                        ),
+                exit = slideOutVertically(
+                    animationSpec = tween(
+                        durationMillis = ZonereaMotion.durationFast,
+                        easing = ZonereaMotion.easingStandard
+                    )
+                ) { it } +
+                        fadeOut(
+                            animationSpec = tween(
+                                durationMillis = ZonereaMotion.durationFast,
+                                easing = ZonereaMotion.easingStandard
+                            )
+                        )
             ) {
                 currentlyPlaying?.let {
                     MiniPlayer(
@@ -231,7 +258,7 @@ fun SongListScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 4.dp)
+                    .padding(end = ZonereaSpacing.xs)
             )
             if (showAddSongsDialog && filterType is FilterType.Playlist) {
                 val currentPlaylist = playlists.find { it.id == filterType.playlistId }

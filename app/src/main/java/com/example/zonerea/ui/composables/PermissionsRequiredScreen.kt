@@ -22,7 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
+import com.example.zonerea.ui.theme.ZonereaSpacing
 
 @Composable
 fun PermissionsRequiredScreen(
@@ -34,17 +34,17 @@ fun PermissionsRequiredScreen(
     onOpenSettings: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(ZonereaSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(ZonereaSpacing.md))
         Text(
             text = "Se requieren permisos para continuar",
             style = MaterialTheme.typography.titleMedium
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(ZonereaSpacing.sm))
         Text(
             text = if (isAndroid13Plus) {
                 "Concede permiso de música (almacenamiento) y notificaciones para usar Zonerea."
@@ -55,27 +55,27 @@ fun PermissionsRequiredScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (preferOpenSettings) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(ZonereaSpacing.sm))
             Text(
                 text = "Has denegado permanentemente alguno de los permisos. Abre Ajustes para concederlos.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error
             )
         }
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(ZonereaSpacing.lg))
 
         PermissionStatusRow(label = "Almacenamiento", granted = storageGranted)
         if (isAndroid13Plus) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(ZonereaSpacing.sm))
             PermissionStatusRow(label = "Notificaciones", granted = notificationsGranted)
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(ZonereaSpacing.lg))
         if (preferOpenSettings) {
             Button(onClick = onOpenSettings, modifier = Modifier.fillMaxWidth()) {
                 Text("Abrir ajustes")
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(ZonereaSpacing.sm))
             TextButton(onClick = onRequestPermissions, enabled = false) {
                 Text("Conceder permisos")
             }
@@ -83,7 +83,7 @@ fun PermissionsRequiredScreen(
             Button(onClick = onRequestPermissions, modifier = Modifier.fillMaxWidth()) {
                 Text("Conceder permisos")
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(ZonereaSpacing.sm))
             TextButton(onClick = onOpenSettings) {
                 Text("Abrir ajustes")
             }

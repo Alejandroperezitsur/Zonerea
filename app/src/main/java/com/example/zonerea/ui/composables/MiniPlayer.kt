@@ -2,6 +2,7 @@ package com.example.zonerea.ui.composables
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -43,8 +44,16 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.LocalIndication
 import coil.compose.SubcomposeAsyncImage
 import com.example.zonerea.model.Song
+import com.example.zonerea.ui.theme.ZonereaSpacing
+import com.example.zonerea.ui.theme.ZonereaMotion
+import com.example.zonerea.ui.theme.ZonereaAlpha
+import com.example.zonerea.ui.theme.ZonereaElevation
+import com.example.zonerea.ui.theme.ensureReadableColor
 
 @Composable
 fun MiniPlayer(
@@ -71,12 +80,39 @@ fun MiniPlayer(
             titlePulse.snapTo(0.96f)
             titlePulse.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
             artistFade.snapTo(0.48f)
-            artistFade.animateTo(0.72f, tween(durationMillis = 160, easing = LinearOutSlowInEasing))
+            artistFade.animateTo(
+                0.72f,
+                tween(durationMillis = ZonereaMotion.durationFast, easing = ZonereaMotion.easingEmphasized)
+            )
         } catch (_: Exception) { }
     }
+    val surfaceInteraction = remember { MutableInteractionSource() }
+    val surfacePressed by surfaceInteraction.collectIsPressedAsState()
+    val miniScale by animateFloatAsState(
+        targetValue = if (surfacePressed) 0.97f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.8f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "mini_player_press_scale"
+    )
+    val baseElevation = ZonereaElevation.level4
+    val pressedElevation = baseElevation + 2.dp
+    val miniElevation by animateDpAsState(
+        targetValue = if (surfacePressed) pressedElevation else baseElevation,
+        animationSpec = spring(
+            dampingRatio = 0.8f,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "mini_player_elevation"
+    )
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = miniScale
+                scaleY = miniScale
+            }
             .pointerInput(Unit) {
                 detectVerticalDragGestures { _, dragAmount ->
                     if (dragAmount < -50) { // Swipe up
@@ -84,14 +120,21 @@ fun MiniPlayer(
                     }
                 }
             }
-            .clickable(onClick = onClick),
-        shadowElevation = 10.dp,
-        tonalElevation = 6.dp,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
+            .clickable(
+                interactionSource = surfaceInteraction,
+                indication = LocalIndication.current,
+                onClick = onClick
+            ),
+        shadowElevation = miniElevation,
+        tonalElevation = ZonereaElevation.level3,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = ZonereaAlpha.playerBackgroundTop)
     ) {
         Column {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.padding(
+                    horizontal = ZonereaSpacing.md,
+                    vertical = ZonereaSpacing.sm
+                ),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -123,13 +166,24 @@ fun MiniPlayer(
                         )
                         Column(
                             modifier = Modifier
-                                .padding(start = 16.dp)
+                                .padding(start = ZonereaSpacing.md)
                                 .graphicsLayer {
                                     scaleX = titlePulse.value
                                     scaleY = titlePulse.value
                                 }
                         ) {
-                            Text(currentSong.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                            val surface = MaterialTheme.colorScheme.surface
+                            val titleColor = ensureReadableColor(
+                                MaterialTheme.colorScheme.onSurface,
+                                surface,
+                                minRatio = 4.5
+                            )
+                            Text(
+                                currentSong.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                color = titleColor
+                            )
                             Text(
                                 currentSong.artist,
                                 style = MaterialTheme.typography.bodyMedium,

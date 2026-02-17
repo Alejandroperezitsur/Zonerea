@@ -34,8 +34,23 @@ class SongRepository(private val context: Context, private val songDao: SongDao)
                 MediaStore.Audio.Media.DATE_ADDED,
                 MediaStore.Audio.Media.MIME_TYPE
             )
-            val selection = "(${MediaStore.Audio.Media.IS_MUSIC} != 0) AND (${MediaStore.Audio.Media.MIME_TYPE} = ? OR ${MediaStore.Audio.Media.MIME_TYPE} = ?)"
-            val selectionArgs = arrayOf("audio/mpeg", "audio/mp4") // MP3 and M4A
+            val selection = "(${MediaStore.Audio.Media.IS_MUSIC} != 0) AND (" +
+                    "${MediaStore.Audio.Media.MIME_TYPE} = ? OR " +
+                    "${MediaStore.Audio.Media.MIME_TYPE} = ? OR " +
+                    "${MediaStore.Audio.Media.MIME_TYPE} = ? OR " +
+                    "${MediaStore.Audio.Media.MIME_TYPE} = ? OR " +
+                    "${MediaStore.Audio.Media.MIME_TYPE} = ? OR " +
+                    "${MediaStore.Audio.Media.MIME_TYPE} = ? OR " +
+                    "${MediaStore.Audio.Media.MIME_TYPE} = ?)"
+            val selectionArgs = arrayOf(
+                "audio/mpeg",
+                "audio/mp4",
+                "audio/ogg",
+                "audio/flac",
+                "audio/wav",
+                "audio/x-wav",
+                "audio/aac"
+            )
 
             context.contentResolver.query(
                 collection,
