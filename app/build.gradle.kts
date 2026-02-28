@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.apvlabs.zonerea"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.apvlabs.zonerea"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
@@ -25,7 +25,14 @@ android {
             val props = project.properties
             val storeFilePath = props["RELEASE_STORE_FILE"] as String?
             if (storeFilePath != null && storeFilePath.isNotEmpty()) {
-                storeFile = file(storeFilePath)
+                // Look for the keystore in the app module directory first
+                val keystoreFile = file(storeFilePath)
+                storeFile = if (keystoreFile.exists()) {
+                    keystoreFile
+                } else {
+                    // Then look in the project root
+                    rootProject.file(storeFilePath)
+                }
                 storePassword = props["RELEASE_STORE_PASSWORD"] as String?
                 keyAlias = props["RELEASE_KEY_ALIAS"] as String?
                 keyPassword = props["RELEASE_KEY_PASSWORD"] as String?

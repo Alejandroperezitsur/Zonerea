@@ -1,4 +1,4 @@
-package com.example.zonerea
+package com.apvlabs.zonerea
 
 import org.junit.Test
 
